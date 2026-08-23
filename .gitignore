@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# build outputs
+.next
+dist
+
+# env files (keep .env.example)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editor
+.idea
+.vscode/settings.json

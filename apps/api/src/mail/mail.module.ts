@@ -1,0 +1,1 @@
+import{Module}from'@nestjs/common';import{DirectMailDispatcher}from'./direct-mail.dispatcher';import{MailDispatcher}from'./mail-dispatcher';import{ResendMailService}from'./resend-mail.service';@Module({providers:[ResendMailService,DirectMailDispatcher,{provide:MailDispatcher,useExisting:DirectMailDispatcher}],exports:[MailDispatcher]})export class MailModule{}

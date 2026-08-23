@@ -1,0 +1,18 @@
+"use client";
+import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { hasSession } from "@/lib/auth";
+import s from "../../route-loading.module.scss";
+export default function Layout({ children }: { children: ReactNode }) {
+  const router = useRouter(),
+    [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!hasSession()) router.replace("/login");
+    else setReady(true);
+  }, [router]);
+  return ready ? (
+    children
+  ) : (
+    <main className={s.loading}>로그인 정보를 확인하고 있어요…</main>
+  );
+}

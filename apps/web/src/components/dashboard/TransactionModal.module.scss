@@ -1,0 +1,1 @@
+@use '../../styles/tokens' as *;.form{display:grid;gap:17px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.notice{margin:0;padding:12px;border-radius:$radius-sm;background:$mint;color:$green;font-size:13px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:5px}@media(max-width:500px){.row{grid-template-columns:1fr}}

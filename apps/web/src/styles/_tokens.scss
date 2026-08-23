@@ -1,0 +1,2 @@
+$ink:#18221d;$muted:#6d7770;$surface:#fff;$canvas:#f4f6f2;$line:#dfe5df;$green:#28634a;$mint:#dff2e7;$orange:#e4833e;$red:#b84a45;$radius-sm:10px;$radius:18px;$shadow:0 12px 40px rgba(27,54,39,.08);
+@mixin card{background:$surface;border:1px solid $line;border-radius:$radius;box-shadow:0 2px 10px rgba(24,34,29,.025)}

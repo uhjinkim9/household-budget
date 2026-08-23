@@ -1,0 +1,33 @@
+@use "../../styles/tokens" as *;
+.backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  background: rgba(11, 20, 15, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: $shadow;
+  padding: 24px;
+}
+.modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.modal h2 {
+  margin: 0;
+  font-size: 21px;
+}
+.modal header button {
+  border: 0;
+  background: none;
+  font-size: 28px;
+  color: $muted;
+}

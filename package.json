@@ -1,0 +1,13 @@
+{
+  "name": "household-budget",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run start:dev -w @budget/api\" \"npm run dev -w @budget/web\"",
+    "dev:api": "npm run start:dev -w @budget/api",
+    "dev:web": "npm run dev -w @budget/web",
+    "build": "npm run build -w @budget/api && npm run build -w @budget/web",
+    "typecheck": "npm run typecheck -w @budget/api && npm run typecheck -w @budget/web"
+  },
+  "devDependencies": { "concurrently": "^9.1.2" }
+}

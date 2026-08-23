@@ -1,0 +1,135 @@
+@use "../../styles/tokens" as *;
+.shell {
+  min-height: 100vh;
+}
+.shell > main {
+  margin-left: 232px;
+  padding: 42px clamp(22px, 6vw, 88px) 70px;
+}
+.shell header {
+  margin-bottom: 25px;
+}
+.shell header p {
+  margin: 0 0 7px;
+  color: $green;
+  font-size: 13px;
+  font-weight: 800;
+}
+.shell h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+.shell header span,
+.description {
+  color: $muted;
+  font-size: 14px;
+}
+.card {
+  @include card;
+  max-width: 760px;
+  padding: 28px;
+  display: grid;
+  gap: 25px;
+}
+.avatarSection {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.avatar {
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: $mint;
+  color: $green;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  font-weight: 800;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatarSection p {
+  margin: 7px 0 12px;
+  color: $muted;
+  font-size: 13px;
+}
+.imageActions {
+  display: flex;
+  gap: 7px;
+}
+.file {
+  display: none;
+}
+.divider {
+  height: 1px;
+  background: $line;
+}
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 17px;
+}
+.fieldsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+.card h2 {
+  font-size: 17px;
+  margin: 0 0 5px;
+}
+.description {
+  margin: 0 0 17px;
+}
+.card footer {
+  display: flex;
+  justify-content: flex-end;
+}
+.error,
+.success {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.error {
+  background: #fbe9e7;
+  color: $red;
+}
+.success {
+  background: $mint;
+  color: $green;
+}
+.state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: $muted;
+}
+@media (max-width: 850px) {
+  .shell > main {
+    margin-left: 0;
+    padding: 30px 18px;
+  }
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 500px) {
+  .avatarSection {
+    align-items: flex-start;
+  }
+  .avatar {
+    width: 72px;
+    height: 72px;
+  }
+  .card {
+    padding: 20px;
+  }
+}

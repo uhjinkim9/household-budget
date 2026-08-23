@@ -1,0 +1,23 @@
+@use "../../styles/tokens" as *;
+.input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  background: #fff;
+  color: $ink;
+  padding: 0 13px;
+  outline: none;
+  transition: 0.15s;
+  &:focus {
+    border-color: $green;
+    box-shadow: 0 0 0 3px rgba($green, 0.1);
+  }
+  &[aria-invalid="true"] {
+    border-color: $red;
+    box-shadow: 0 0 0 3px rgba($red, 0.08);
+  }
+  &::placeholder {
+    color: #a0a8a2;
+  }
+}

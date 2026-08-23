@@ -1,0 +1,1 @@
+import{Injectable}from'@nestjs/common';import{MailDispatcher,VerificationMail}from'./mail-dispatcher';import{ResendMailService}from'./resend-mail.service';@Injectable()export class DirectMailDispatcher extends MailDispatcher{constructor(private mail:ResendMailService){super()}sendVerification(message:VerificationMail){return this.mail.sendVerification(message)}}

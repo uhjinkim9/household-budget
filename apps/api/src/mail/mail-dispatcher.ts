@@ -1,0 +1,1 @@
+export interface VerificationMail{to:string;code:string;expiresInMinutes:number}/** 큐 도입 시 이 포트를 MQ producer 구현으로 교체합니다. */export abstract class MailDispatcher{abstract sendVerification(message:VerificationMail):Promise<void>}

@@ -1,0 +1,1 @@
+import type{ReactNode}from'react';import s from'./FormField.module.scss';export function FormField({label,hint,children}:{label:string;hint?:string;children:ReactNode}){return <label className={s.field}><span>{label}</span>{children}{hint&&<small>{hint}</small>}</label>}
