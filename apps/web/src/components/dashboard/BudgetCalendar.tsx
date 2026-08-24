@@ -7,7 +7,7 @@ import {
   type CellClickPayload,
 } from "calendar-mercury-lab";
 import { api } from "@/lib/api";
-import type { Transaction, TransactionType } from "@/lib/types";
+import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
 import s from "./BudgetCalendar.module.scss";
 
 const colors: Record<TransactionType, string> = {
@@ -22,14 +22,20 @@ export function BudgetCalendar({
   onViewChange,
   onCreate,
   onSelect,
+  notes,
+  onCreateNote,
+  onSelectNote,
 }: {
   items: Transaction[];
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
   onCreate: (type: TransactionType, date: string) => void;
   onSelect: (transaction: Transaction) => void;
+  notes: DailyNote[];
+  onCreateNote: (date: string) => void;
+  onSelectNote: (note: DailyNote) => void;
 }) {
-  const events: CalendarEvent[] = items.map((item) => ({
+  const transactionEvents: CalendarEvent[] = items.map((item) => ({
     id: item.id,
     calendarId: item.type,
     title: `${item.title} · ${Number(item.amount).toLocaleString()}원`,
@@ -41,6 +47,16 @@ export function BudgetCalendar({
       ? { freq: item.recurrenceRule as "MONTHLY" }
       : undefined,
   }));
+  const noteEvents: CalendarEvent[] = notes.map((note) => ({
+    id: `note:${note.id}`,
+    calendarId: "NOTE",
+    title: `📝 ${note.content}`,
+    start: note.date,
+    end: note.date,
+    allDay: true,
+    color: "#f4df9d",
+  }));
+  const events = [...noteEvents, ...transactionEvents];
 
   function menu(payload: CellClickPayload, close: () => void) {
     const actions: [TransactionType, string, string][] = [
@@ -65,11 +81,30 @@ export function BudgetCalendar({
             </span>
           </button>
         ))}
+        <button
+          onClick={() => {
+            const existing = notes.find((note) => note.date === payload.date);
+            if (existing) onSelectNote(existing);
+            else onCreateNote(payload.date);
+            close();
+          }}
+        >
+          <i className={s.note} />
+          <span>
+            <b>메모/일기</b>
+            <small>오늘의 소비 소회를 남겨요</small>
+          </span>
+        </button>
       </div>
     );
   }
 
   function selectEvent(event: CalendarEvent) {
+    if (event.calendarId === "NOTE") {
+      const note = notes.find((item) => `note:${item.id}` === event.id);
+      if (note) onSelectNote(note);
+      return;
+    }
     const originalId = event.id.split("_")[0];
     const transaction = items.find((item) => item.id === originalId);
     if (transaction) onSelect(transaction);
@@ -84,6 +119,7 @@ export function BudgetCalendar({
           { id: "BALANCE", name: "잔액", color: colors.BALANCE },
           { id: "FIXED", name: "정기 지출", color: colors.FIXED },
           { id: "VARIABLE", name: "일시적 소비", color: colors.VARIABLE },
+          { id: "NOTE", name: "메모", color: "#f4df9d" },
         ]}
         onViewChange={onViewChange}
         onEventClick={selectEvent}
@@ -93,4 +129,3 @@ export function BudgetCalendar({
     </section>
   );
 }
-

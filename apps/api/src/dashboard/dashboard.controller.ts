@@ -146,6 +146,47 @@ export class DashboardController {
     };
   }
 
+  @Get("category-report")
+  async categoryReport(
+    @AuthUser() user: { id: string },
+    @Query("workspaceId") workspaceId: string,
+    @Query("from") from: string,
+    @Query("to") to: string,
+  ) {
+    await this.access.assertEditor(user.id, workspaceId);
+    const rows = await this.transactions.find({
+      where: {
+        workspaceId,
+        date: LessThanOrEqual(to),
+        approvalStatus: Not(ApprovalStatus.CANCELLED),
+        type: Not(TransactionType.BALANCE),
+      },
+    });
+    const totals = new Map<string, number>();
+    for (const row of rows) {
+      const included =
+        row.recurrenceRule === "MONTHLY"
+          ? this.hasMonthlyOccurrence(row.date, from, to)
+          : row.date >= from && row.date <= to;
+      if (!included) continue;
+      totals.set(
+        row.category,
+        (totals.get(row.category) ?? 0) + Number(row.amount),
+      );
+    }
+    const categories = [...totals.entries()]
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+    const total = categories.reduce((sum, item) => sum + item.amount, 0);
+    return {
+      total,
+      categories: categories.map((item) => ({
+        ...item,
+        percentage: total ? (item.amount / total) * 100 : 0,
+      })),
+    };
+  }
+
   private latestOccurrence(masterDate: string, asOf: string) {
     const [masterYear, masterMonth, masterDay] = masterDate
       .split("-")
@@ -193,5 +234,12 @@ export class DashboardController {
         count += 1;
     }
     return count;
+  }
+
+  private hasMonthlyOccurrence(masterDate: string, from: string, to: string) {
+    const [, , masterDay] = masterDate.split("-").map(Number);
+    const [year, month] = from.split("-").map(Number);
+    const occurrence = this.dateWithClampedDay(year, month, masterDay);
+    return occurrence >= masterDate && occurrence >= from && occurrence <= to;
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { PaymentMethod, Transaction, TransactionType } from "@/lib/types";
+import type { WorkspaceCategory } from "@/lib/workspace-settings-api";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -33,6 +34,7 @@ export function TransactionModal({
   date,
   transaction,
   methods,
+  categories,
   onClose,
   onSubmit,
   onDelete,
@@ -42,6 +44,7 @@ export function TransactionModal({
   date: string;
   transaction?: Transaction | null;
   methods: PaymentMethod[];
+  categories: WorkspaceCategory[];
   onClose: () => void;
   onSubmit: (value: TransactionFormValue) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -52,6 +55,17 @@ export function TransactionModal({
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
+  const categoryOptions =
+    activeType === "BALANCE"
+      ? ["잔액"]
+      : categories.map((category) => category.name);
+  if (
+    transaction?.category &&
+    activeType !== "BALANCE" &&
+    !categoryOptions.includes(transaction.category)
+  ) {
+    categoryOptions.unshift(transaction.category);
+  }
 
   if (!activeType) return null;
 
@@ -148,19 +162,21 @@ export function TransactionModal({
           <FormField label="카테고리">
             <Select
               name="category"
+              required
               defaultValue={
                 transaction?.category ??
-                (activeType === "BALANCE" ? "잔액" : "식비")
+                (activeType === "BALANCE" ? "잔액" : categoryOptions[0])
               }
               disabled={readOnly}
             >
-              <option>잔액</option>
-              <option>식비</option>
-              <option>교통</option>
-              <option>주거</option>
-              <option>생활</option>
-              <option>구독</option>
-              <option>기타</option>
+              {categoryOptions.length === 0 && (
+                <option value="">환경설정에서 카테고리를 추가해주세요</option>
+              )}
+              {categoryOptions.map((category) => (
+                <option value={category} key={category}>
+                  {category}
+                </option>
+              ))}
             </Select>
           </FormField>
 

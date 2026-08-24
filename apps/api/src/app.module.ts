@@ -10,6 +10,7 @@ import { UsersModule } from "./users/users.module";
 import { ApiKeyModule } from "./api-keys/api-key.module";
 import { HolidayModule } from "./holidays/holiday.module";
 import { HealthController } from "./health.controller";
+import { DailyNoteModule } from "./daily-notes/daily-note.module";
 
 @Module({
   controllers: [HealthController],
@@ -38,6 +39,7 @@ import { HealthController } from "./health.controller";
     UsersModule,
     ApiKeyModule,
     HolidayModule,
+    DailyNoteModule,
   ],
 })
 export class AppModule {}

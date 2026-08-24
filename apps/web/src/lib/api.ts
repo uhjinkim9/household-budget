@@ -1,4 +1,4 @@
-import type { PaymentMethod, Transaction } from "./types";
+import type { DailyNote, PaymentMethod, Transaction } from "./types";
 
 export interface Workspace {
   id: string;
@@ -13,8 +13,7 @@ export interface Holiday {
   name: string;
 }
 
-const base =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 const ACTIVE_WORKSPACE_KEY = "budget-active-workspace";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -103,18 +102,52 @@ export const api = {
       body: JSON.stringify(body),
     }),
   deleteTransaction: (id: string, workspaceId: string) =>
-    request<{ id: string }>(
-      `/transactions/${id}?workspaceId=${workspaceId}`,
-      { method: "DELETE" },
-    ),
+    request<{ id: string }>(`/transactions/${id}?workspaceId=${workspaceId}`, {
+      method: "DELETE",
+    }),
   dashboardBalance: (workspaceId: string, asOf: string) =>
     request<{
       balance: number;
       mode: "CUMULATIVE" | "MONTHLY_RESET";
       resetAt: string | null;
     }>(`/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}`),
+  categoryReport: (workspaceId: string, from: string, to: string) =>
+    request<{
+      total: number;
+      categories: Array<{
+        category: string;
+        amount: number;
+        percentage: number;
+      }>;
+    }>(
+      `/dashboard/category-report?workspaceId=${workspaceId}&from=${from}&to=${to}`,
+    ),
   paymentMethods: (workspaceId: string) =>
     request<PaymentMethod[]>(`/payment-methods?workspaceId=${workspaceId}`),
-  holidays: (year: number) =>
-    request<Holiday[]>(`/holidays?year=${year}`),
+  holidays: (year: number) => request<Holiday[]>(`/holidays?year=${year}`),
+  dailyNotes: (workspaceId: string, from: string, to: string) =>
+    request<DailyNote[]>(
+      `/daily-notes?workspaceId=${workspaceId}&from=${from}&to=${to}`,
+    ),
+  createDailyNote: (body: {
+    workspaceId: string;
+    date: string;
+    content: string;
+  }) =>
+    request<DailyNote>("/daily-notes", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateDailyNote: (
+    id: string,
+    body: { workspaceId: string; date: string; content: string },
+  ) =>
+    request<DailyNote>(`/daily-notes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteDailyNote: (id: string, workspaceId: string) =>
+    request<{ id: string }>(`/daily-notes/${id}?workspaceId=${workspaceId}`, {
+      method: "DELETE",
+    }),
 };

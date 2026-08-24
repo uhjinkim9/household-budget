@@ -39,6 +39,9 @@ export function WorkspaceSettingsModal({
     });
     await qc.invalidateQueries({ queryKey: ["workspaces"] });
     await qc.invalidateQueries({ queryKey: ["active-workspace"] });
+    await qc.invalidateQueries({
+      queryKey: ["workspace-categories", workspace!.id],
+    });
   }
   async function rename(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

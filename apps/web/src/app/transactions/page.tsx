@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { api } from "@/lib/api";
+import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import {
   dayBounds,
   formatDate,
@@ -97,6 +98,11 @@ export default function TransactionsPage() {
   const { data: methods = [] } = useQuery({
     queryKey: ["payment-methods", workspaceId],
     queryFn: () => api.paymentMethods(workspaceId),
+    enabled: Boolean(workspaceId),
+  });
+  const { data: categories = [] } = useQuery({
+    queryKey: ["workspace-categories", workspaceId],
+    queryFn: () => workspaceSettingsApi.categories(workspaceId),
     enabled: Boolean(workspaceId),
   });
 
@@ -313,6 +319,7 @@ export default function TransactionsPage() {
         date={selected?.date ?? today}
         transaction={selected}
         methods={methods}
+        categories={categories}
         onClose={() => setSelected(null)}
         onSubmit={save}
         onDelete={selected ? remove : undefined}

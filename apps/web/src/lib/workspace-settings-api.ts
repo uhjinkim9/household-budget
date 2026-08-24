@@ -53,6 +53,8 @@ async function request<T>(path: string, init?: RequestInit) {
 }
 export const workspaceSettingsApi = {
   get: (id: string) => request<WorkspaceSettings>(`/workspaces/${id}/settings`),
+  categories: (workspaceId: string) =>
+    request<WorkspaceCategory[]>(`/workspaces/${workspaceId}/categories`),
   removeMember: (workspaceId: string, memberId: string) =>
     request(`/workspaces/${workspaceId}/members/${memberId}`, {
       method: "DELETE",

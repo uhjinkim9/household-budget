@@ -57,6 +57,12 @@ export class WorkspaceController {
   ) {
     return this.s.settings(u.id, id);
   }
+  @Get(":id/categories") categories(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+  ) {
+    return this.s.listCategories(u.id, id);
+  }
   @Patch(":id") update(
     @AuthUser() u: { id: string },
     @Param("id") id: string,

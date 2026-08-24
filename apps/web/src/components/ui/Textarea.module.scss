@@ -1,0 +1,1 @@
+@use '../../styles/tokens' as *;.textarea{width:100%;min-height:130px;resize:vertical;border:1px solid $line;border-radius:$radius-sm;background:#fff;color:$ink;padding:12px 13px;outline:none;font:inherit;line-height:1.6;transition:.15s}.textarea:focus{border-color:$green;box-shadow:0 0 0 3px rgba($green,.1)}.textarea::placeholder{color:#a0a8a2}

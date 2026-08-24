@@ -9,8 +9,10 @@ import { CardPerformance } from "@/components/dashboard/CardPerformance";
 import { BudgetCalendar } from "@/components/dashboard/BudgetCalendar";
 import { CreateMenu } from "@/components/dashboard/CreateMenu";
 import { TransactionModal } from "@/components/dashboard/TransactionModal";
+import { DailyNoteModal } from "@/components/dashboard/DailyNoteModal";
 import { api } from "@/lib/api";
-import type { Transaction, TransactionType } from "@/lib/types";
+import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
+import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
 import { monthBounds, toLocalDateString, yearBounds } from "@/lib/date-parser";
 import s from "./page.module.scss";
 export default function Dashboard() {
@@ -33,9 +35,19 @@ export default function Dashboard() {
     queryFn: () => api.transactions(workspaceId, range.from, range.to),
     enabled: Boolean(workspaceId),
   });
+  const { data: notes = [] } = useQuery({
+    queryKey: ["daily-notes", workspaceId, range.from, range.to],
+    queryFn: () => api.dailyNotes(workspaceId, range.from, range.to),
+    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
+  });
   const { data: methods = [] } = useQuery({
     queryKey: ["payment-methods", workspaceId],
     queryFn: () => api.paymentMethods(workspaceId),
+    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
+  });
+  const { data: categories = [] } = useQuery({
+    queryKey: ["workspace-categories", workspaceId],
+    queryFn: () => workspaceSettingsApi.categories(workspaceId),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   const { data: balanceData } = useQuery({
@@ -55,7 +67,9 @@ export default function Dashboard() {
   const [view, setView] = useState<CalendarView>("month"),
     [type, setType] = useState<TransactionType | null>(null),
     [date, setDate] = useState(() => toLocalDateString()),
-    [selected, setSelected] = useState<Transaction | null>(null);
+    [selected, setSelected] = useState<Transaction | null>(null),
+    [noteDate, setNoteDate] = useState<string | null>(null),
+    [selectedNote, setSelectedNote] = useState<DailyNote | null>(null);
   const summary = useMemo(
     () => ({
       balance: balanceData?.balance ?? 0,
@@ -69,9 +83,17 @@ export default function Dashboard() {
     [items, balanceData],
   );
   function start(t: TransactionType, d = date) {
+    setNoteDate(null);
+    setSelectedNote(null);
     setSelected(null);
     setType(t);
     setDate(d);
+  }
+  function startNote(nextDate: string, note: DailyNote | null = null) {
+    setType(null);
+    setSelected(null);
+    setNoteDate(nextDate);
+    setSelectedNote(note);
   }
   function closeModal() {
     setType(null);
@@ -102,6 +124,18 @@ export default function Dashboard() {
     await qc.invalidateQueries({
       queryKey: ["dashboard-balance", workspaceId],
     });
+  }
+  async function saveNote(value: { date: string; content: string }) {
+    if (!workspaceId) return;
+    const body = { workspaceId, ...value };
+    if (selectedNote) await api.updateDailyNote(selectedNote.id, body);
+    else await api.createDailyNote(body);
+    await qc.invalidateQueries({ queryKey: ["daily-notes", workspaceId] });
+  }
+  async function removeNote() {
+    if (!workspaceId || !selectedNote) return;
+    await api.deleteDailyNote(selectedNote.id, workspaceId);
+    await qc.invalidateQueries({ queryKey: ["daily-notes", workspaceId] });
   }
   if (isLoading)
     return <main className={s.state}>가계를 준비하고 있어요…</main>;
@@ -150,6 +184,9 @@ export default function Dashboard() {
               setSelected(transaction);
               setType(null);
             }}
+            notes={notes}
+            onCreateNote={(nextDate) => startNote(nextDate)}
+            onSelectNote={(note) => startNote(note.date, note)}
           />
           <aside>
             <CardPerformance
@@ -165,9 +202,21 @@ export default function Dashboard() {
         date={date}
         transaction={selected}
         methods={methods}
+        categories={categories}
         onClose={closeModal}
         onSubmit={save}
         onDelete={selected ? remove : undefined}
+      />
+      <DailyNoteModal
+        key={selectedNote?.id ?? noteDate ?? "note-closed"}
+        date={noteDate}
+        note={selectedNote}
+        onClose={() => {
+          setNoteDate(null);
+          setSelectedNote(null);
+        }}
+        onSave={saveNote}
+        onDelete={removeNote}
       />
     </div>
   );

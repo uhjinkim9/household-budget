@@ -13,6 +13,7 @@ import {
   WorkspaceRole,
 } from "../entities/workspace.entity";
 import { WorkspaceCategory } from "../entities/workspace-category.entity";
+import { DailyNote } from "../entities/daily-note.entity";
 const DEFAULT_CATEGORIES = [
   ["식비", "#e49758"],
   ["교통", "#607cb2"],
@@ -103,6 +104,13 @@ export class WorkspaceService {
     });
     return { workspace, members, categories };
   }
+  async listCategories(userId: string, workspaceId: string) {
+    await this.assertMember(userId, workspaceId);
+    return this.c.find({
+      where: { workspaceId, isActive: true },
+      order: { sortOrder: "ASC", createdAt: "ASC" },
+    });
+  }
   async update(userId: string, id: string, name: string) {
     await this.assertOwner(userId, id);
     const workspace = await this.w.findOneBy({ id });
@@ -113,6 +121,7 @@ export class WorkspaceService {
   async remove(userId: string, id: string) {
     await this.assertOwner(userId, id);
     await this.db.transaction(async (em) => {
+      await em.delete(DailyNote, { workspaceId: id });
       await em.delete(WorkspaceCategory, { workspaceId: id });
       await em.delete(WorkspaceInvite, { workspaceId: id });
       await em.delete(WorkspaceMember, { workspaceId: id });

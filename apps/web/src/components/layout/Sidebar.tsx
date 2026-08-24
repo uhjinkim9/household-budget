@@ -72,6 +72,14 @@ export function Sidebar() {
         >
           ▤<span>거래 내역</span>
         </Link>
+        {active?.role !== "VIEWER" && (
+          <Link
+            href="/reports"
+            className={pathname === "/reports" ? s.active : ""}
+          >
+            ◕<span>지출 리포트</span>
+          </Link>
+        )}
         {active?.role === "OWNER" && (
           <>
             <Link
