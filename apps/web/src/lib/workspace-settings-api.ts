@@ -31,6 +31,15 @@ export interface WorkspaceInvite {
   isActive: boolean;
   createdAt: string;
 }
+export interface DiscordWebhookSetting {
+  id: string;
+  workspaceId: string;
+  name: string;
+  isActive: boolean;
+  lastSentAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
 const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 async function request<T>(path: string, init?: RequestInit) {
   const token = localStorage.getItem("budget-token"),
@@ -95,5 +104,33 @@ export const workspaceSettingsApi = {
   revokeInvite: (workspaceId: string, inviteId: string) =>
     request<{ id: string }>(`/workspaces/${workspaceId}/invites/${inviteId}`, {
       method: "DELETE",
+    }),
+  discordWebhooks: (workspaceId: string) =>
+    request<DiscordWebhookSetting[]>(
+      `/discord-webhooks?workspaceId=${workspaceId}`,
+    ),
+  createDiscordWebhook: (workspaceId: string, webhookUrl: string) =>
+    request<DiscordWebhookSetting>("/discord-webhooks", {
+      method: "POST",
+      body: JSON.stringify({
+        workspaceId,
+        name: "Discord 알림",
+        webhookUrl,
+      }),
+    }),
+  updateDiscordWebhook: (id: string, workspaceId: string, webhookUrl: string) =>
+    request<DiscordWebhookSetting>(`/discord-webhooks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ workspaceId, webhookUrl, isActive: true }),
+    }),
+  deleteDiscordWebhook: (id: string, workspaceId: string) =>
+    request<{ id: string }>(
+      `/discord-webhooks/${id}?workspaceId=${workspaceId}`,
+      { method: "DELETE" },
+    ),
+  testDiscordWebhook: (id: string, workspaceId: string) =>
+    request<{ delivered: true }>(`/discord-webhooks/${id}/test`, {
+      method: "POST",
+      body: JSON.stringify({ workspaceId }),
     }),
 };

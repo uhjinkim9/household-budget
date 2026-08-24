@@ -21,6 +21,8 @@ export function WorkspaceSettingsModal({
       "general",
     ),
     [inviteBusy, setInviteBusy] = useState(false),
+    [webhookBusy, setWebhookBusy] = useState(""),
+    [webhookMessage, setWebhookMessage] = useState(""),
     [copiedCode, setCopiedCode] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["workspace-settings", workspace?.id],
@@ -32,6 +34,12 @@ export function WorkspaceSettingsModal({
     queryFn: () => workspaceSettingsApi.invites(workspace!.id),
     enabled: Boolean(workspace),
   });
+  const { data: discordWebhooks = [] } = useQuery({
+    queryKey: ["discord-webhooks", workspace?.id],
+    queryFn: () => workspaceSettingsApi.discordWebhooks(workspace!.id),
+    enabled: Boolean(workspace),
+  });
+  const discordWebhook = discordWebhooks[0];
   if (!workspace) return null;
   async function refresh() {
     await qc.invalidateQueries({
@@ -54,6 +62,79 @@ export function WorkspaceSettingsModal({
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "변경하지 못했습니다.");
+    }
+  }
+  async function saveDiscordWebhook(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const webhookUrl = String(new FormData(form).get("webhookUrl"));
+    setWebhookBusy("save");
+    setWebhookMessage("");
+    setError("");
+    try {
+      if (discordWebhook)
+        await workspaceSettingsApi.updateDiscordWebhook(
+          discordWebhook.id,
+          workspace!.id,
+          webhookUrl,
+        );
+      else
+        await workspaceSettingsApi.createDiscordWebhook(
+          workspace!.id,
+          webhookUrl,
+        );
+      form.reset();
+      await qc.invalidateQueries({
+        queryKey: ["discord-webhooks", workspace!.id],
+      });
+      setWebhookMessage("Discord 웹훅을 저장했습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "웹훅을 저장하지 못했습니다.");
+    } finally {
+      setWebhookBusy("");
+    }
+  }
+  async function testDiscordWebhook() {
+    if (!discordWebhook) return;
+    setWebhookBusy("test");
+    setWebhookMessage("");
+    setError("");
+    try {
+      await workspaceSettingsApi.testDiscordWebhook(
+        discordWebhook.id,
+        workspace!.id,
+      );
+      setWebhookMessage("Discord 채널로 테스트 메시지를 보냈습니다.");
+      await qc.invalidateQueries({
+        queryKey: ["discord-webhooks", workspace!.id],
+      });
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "테스트 메시지를 보내지 못했습니다.",
+      );
+    } finally {
+      setWebhookBusy("");
+    }
+  }
+  async function deleteDiscordWebhook() {
+    if (!discordWebhook || !confirm("등록된 Discord 웹훅을 삭제할까요?"))
+      return;
+    setWebhookBusy("delete");
+    setWebhookMessage("");
+    setError("");
+    try {
+      await workspaceSettingsApi.deleteDiscordWebhook(
+        discordWebhook.id,
+        workspace!.id,
+      );
+      await qc.invalidateQueries({
+        queryKey: ["discord-webhooks", workspace!.id],
+      });
+      setWebhookMessage("Discord 웹훅을 삭제했습니다.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "웹훅을 삭제하지 못했습니다.");
+    } finally {
+      setWebhookBusy("");
     }
   }
   async function removeMember(id: string, name: string) {
@@ -200,18 +281,82 @@ export function WorkspaceSettingsModal({
         {isLoading ? (
           <p className={s.empty}>설정을 불러오고 있어요…</p>
         ) : tab === "general" ? (
-          <form className={s.general} onSubmit={rename}>
-            <label>
-              <span>가계 이름</span>
-              <Input
-                name="name"
-                defaultValue={data?.workspace.name ?? workspace.name}
-                minLength={2}
-                required
-              />
-            </label>
-            <Button>이름 변경</Button>
-          </form>
+          <div className={s.general}>
+            <form className={s.generalSection} onSubmit={rename}>
+              <label>
+                <span>가계 이름</span>
+                <Input
+                  name="name"
+                  defaultValue={data?.workspace.name ?? workspace.name}
+                  minLength={2}
+                  required
+                />
+              </label>
+              <Button>이름 변경</Button>
+            </form>
+            <form className={s.webhookSection} onSubmit={saveDiscordWebhook}>
+              <div className={s.webhookTitle}>
+                <div>
+                  <b>Discord 웹훅</b>
+                  <p>지출이 등록되면 지정한 Discord 채널로 알려드려요.</p>
+                </div>
+                <span className={discordWebhook ? s.connected : ""}>
+                  {discordWebhook ? "연결됨" : "미연결"}
+                </span>
+              </div>
+              <div className={s.webhookRow}>
+                <label>
+                  <span>웹훅 URL</span>
+                  <Input
+                    name="webhookUrl"
+                    type="url"
+                    placeholder={
+                      discordWebhook
+                        ? "변경할 새 Discord 웹훅 URL"
+                        : "https://discord.com/api/webhooks/..."
+                    }
+                    required
+                    autoComplete="off"
+                  />
+                </label>
+                <Button disabled={Boolean(webhookBusy)}>
+                  {webhookBusy === "save"
+                    ? "저장 중…"
+                    : discordWebhook
+                      ? "URL 변경"
+                      : "웹훅 연결"}
+                </Button>
+              </div>
+              {discordWebhook?.lastError && (
+                <small className={s.webhookError}>
+                  최근 전송 오류: {discordWebhook.lastError}
+                </small>
+              )}
+              {webhookMessage && (
+                <small className={s.webhookSuccess}>{webhookMessage}</small>
+              )}
+              {discordWebhook && (
+                <div className={s.webhookActions}>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={deleteDiscordWebhook}
+                    disabled={Boolean(webhookBusy)}
+                  >
+                    연결 삭제
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={testDiscordWebhook}
+                    disabled={Boolean(webhookBusy)}
+                  >
+                    {webhookBusy === "test" ? "전송 중…" : "테스트"}
+                  </Button>
+                </div>
+              )}
+            </form>
+          </div>
         ) : tab === "members" ? (
           <div className={s.memberList}>
             {data?.members.map((member) => (

@@ -14,6 +14,7 @@ import {
 } from "../entities/workspace.entity";
 import { WorkspaceCategory } from "../entities/workspace-category.entity";
 import { DailyNote } from "../entities/daily-note.entity";
+import { DiscordWebhook } from "../entities/discord-webhook.entity";
 const DEFAULT_CATEGORIES = [
   ["식비", "#e49758"],
   ["교통", "#607cb2"],
@@ -122,6 +123,7 @@ export class WorkspaceService {
     await this.assertOwner(userId, id);
     await this.db.transaction(async (em) => {
       await em.delete(DailyNote, { workspaceId: id });
+      await em.delete(DiscordWebhook, { workspaceId: id });
       await em.delete(WorkspaceCategory, { workspaceId: id });
       await em.delete(WorkspaceInvite, { workspaceId: id });
       await em.delete(WorkspaceMember, { workspaceId: id });

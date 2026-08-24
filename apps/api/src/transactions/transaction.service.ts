@@ -2,12 +2,14 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, Not, Repository } from "typeorm";
 import { Transaction, TransactionType } from "../entities/transaction.entity";
+import { NotificationPublisher } from "../notifications/notification-publisher";
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectRepository(Transaction)
     private readonly transactions: Repository<Transaction>,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   list(workspaceId: string, from: string, to: string, viewerOnly = false) {
@@ -21,15 +23,15 @@ export class TransactionService {
     });
   }
 
-  create(data: Partial<Transaction>) {
-    return this.transactions.save(this.transactions.create(data));
+  async create(data: Partial<Transaction>) {
+    const transaction = await this.transactions.save(
+      this.transactions.create(data),
+    );
+    void this.notifications.transactionCreated(transaction);
+    return transaction;
   }
 
-  async update(
-    id: string,
-    workspaceId: string,
-    data: Partial<Transaction>,
-  ) {
+  async update(id: string, workspaceId: string, data: Partial<Transaction>) {
     const item = await this.transactions.findOneBy({ id, workspaceId });
     if (!item) throw new NotFoundException();
     Object.assign(item, data, { id, workspaceId });

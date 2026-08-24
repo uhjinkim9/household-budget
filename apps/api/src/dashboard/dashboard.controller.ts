@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Logger, Query, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThanOrEqual, Not, Repository } from "typeorm";
@@ -14,16 +14,20 @@ import {
 } from "../entities/payment-method.entity";
 import { AuthUser } from "../auth/auth-user.decorator";
 import { WorkspaceAccessService } from "../workspaces/workspace-access.service";
+import { HolidayService } from "../holidays/holiday.service";
 
 @UseGuards(AuthGuard("jwt"))
 @Controller("dashboard")
 export class DashboardController {
+  private readonly logger = new Logger(DashboardController.name);
+
   constructor(
     @InjectRepository(Transaction)
     private readonly transactions: Repository<Transaction>,
     @InjectRepository(PaymentMethod)
     private readonly paymentMethods: Repository<PaymentMethod>,
     private readonly access: WorkspaceAccessService,
+    private readonly holidays: HolidayService,
   ) {}
 
   @Get("balance")
@@ -31,7 +35,6 @@ export class DashboardController {
     @AuthUser() user: { id: string },
     @Query("workspaceId") workspaceId: string,
     @Query("asOf") asOf: string,
-    @Query("includeCreditCard") includeCreditCard?: string,
   ) {
     await this.access.assertEditor(user.id, workspaceId);
     const rows = await this.transactions.find({
@@ -43,15 +46,13 @@ export class DashboardController {
       order: { createdAt: "ASC" },
     });
     const methods = await this.paymentMethods.findBy({ workspaceId });
-    const immediatePaymentMethodIds = new Set(
+    const checkCardIds = new Set(
       methods
-        .filter(
-          (method) =>
-            method.type === PaymentMethodType.CHECK_CARD ||
-            (includeCreditCard === "true" &&
-              method.type === PaymentMethodType.CREDIT_CARD),
-        )
+        .filter((method) => method.type === PaymentMethodType.CHECK_CARD)
         .map((method) => method.id),
+    );
+    const creditCards = methods.filter(
+      (method) => method.type === PaymentMethodType.CREDIT_CARD,
     );
     const reset = rows
       .filter(
@@ -71,12 +72,12 @@ export class DashboardController {
           row.date >= from,
       )
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const paymentMethodSpent = rows
+    const checkCardSpent = rows
       .filter(
         (row) =>
           row.type !== TransactionType.BALANCE &&
           Boolean(row.paymentMethodId) &&
-          immediatePaymentMethodIds.has(row.paymentMethodId!),
+          checkCardIds.has(row.paymentMethodId!),
       )
       .reduce((sum, row) => {
         if (row.recurrenceRule === "MONTHLY")
@@ -87,8 +88,14 @@ export class DashboardController {
           );
         return row.date >= from ? sum + Number(row.amount) : sum;
       }, 0);
+    const creditCardPaid = await this.creditCardPayments(
+      rows,
+      creditCards,
+      from,
+      asOf,
+    );
     return {
-      balance: base + accumulated - paymentMethodSpent,
+      balance: base + accumulated - checkCardSpent - creditCardPaid,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
     };
@@ -116,7 +123,7 @@ export class DashboardController {
     const fixed = rows
       .filter((row) => row.type === TransactionType.FIXED)
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const { balance } = await this.balance(user, workspaceId, to, "true");
+    const { balance } = await this.balance(user, workspaceId, to);
 
     const cards = methods
       .filter((method) =>
@@ -247,5 +254,108 @@ export class DashboardController {
     const [year, month] = from.split("-").map(Number);
     const occurrence = this.dateWithClampedDay(year, month, masterDay);
     return occurrence >= masterDate && occurrence >= from && occurrence <= to;
+  }
+
+  private async creditCardPayments(
+    rows: Transaction[],
+    cards: PaymentMethod[],
+    from: string,
+    asOf: string,
+  ) {
+    const [fromYear, fromMonth] = from.split("-").map(Number);
+    const [toYear, toMonth] = asOf.split("-").map(Number);
+    const fromIndex = fromYear * 12 + fromMonth - 1;
+    const toIndex = toYear * 12 + toMonth - 1;
+    const holidayCache = new Map<number, Set<string>>();
+    let paid = 0;
+
+    for (const card of cards) {
+      if (!card.billingDay) continue;
+      const cardRows = rows.filter(
+        (row) =>
+          row.type !== TransactionType.BALANCE &&
+          row.paymentMethodId === card.id,
+      );
+      if (!cardRows.length) continue;
+      const [firstYear, firstMonth] = cardRows
+        .map((row) => row.date)
+        .sort()[0]
+        .split("-")
+        .map(Number);
+      const firstPaymentIndex = firstYear * 12 + firstMonth;
+
+      for (
+        let paymentIndex = Math.max(fromIndex - 1, firstPaymentIndex);
+        paymentIndex <= toIndex;
+        paymentIndex++
+      ) {
+        const paymentYear = Math.floor(paymentIndex / 12);
+        const paymentMonth = (paymentIndex % 12) + 1;
+        const scheduledPaymentDate = this.dateWithClampedDay(
+          paymentYear,
+          paymentMonth,
+          card.billingDay,
+        );
+        const paymentDate = await this.nextBusinessDay(
+          scheduledPaymentDate,
+          holidayCache,
+        );
+        if (paymentDate < from || paymentDate > asOf) continue;
+
+        const usageIndex = paymentIndex - 1;
+        const usageYear = Math.floor(usageIndex / 12);
+        const usageMonth = (usageIndex % 12) + 1;
+        const usageFrom = this.dateWithClampedDay(usageYear, usageMonth, 1);
+        const usageTo = this.dateWithClampedDay(usageYear, usageMonth, 31);
+        paid += cardRows.reduce((sum, row) => {
+          const included =
+            row.recurrenceRule === "MONTHLY"
+              ? this.hasMonthlyOccurrence(row.date, usageFrom, usageTo)
+              : row.date >= usageFrom && row.date <= usageTo;
+          return included ? sum + Number(row.amount) : sum;
+        }, 0);
+      }
+    }
+    return paid;
+  }
+
+  private async nextBusinessDay(
+    scheduledDate: string,
+    cache: Map<number, Set<string>>,
+  ) {
+    let date = scheduledDate;
+    while (true) {
+      const year = Number(date.slice(0, 4));
+      let holidays = cache.get(year);
+      if (!holidays) {
+        try {
+          holidays = new Set(
+            (await this.holidays.list(year)).map((holiday) => holiday.date),
+          );
+        } catch (error) {
+          holidays = new Set();
+          this.logger.warn(
+            `${year}년 공휴일 조회 실패, 주말 기준으로 결제일을 계산합니다: ${
+              error instanceof Error ? error.message : "unknown"
+            }`,
+          );
+        }
+        cache.set(year, holidays);
+      }
+      const day = this.dayOfWeek(date);
+      if (day !== 0 && day !== 6 && !holidays.has(date)) return date;
+      date = this.addDays(date, 1);
+    }
+  }
+
+  private dayOfWeek(value: string) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  }
+
+  private addDays(value: string, amount: number) {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day + amount));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
 }

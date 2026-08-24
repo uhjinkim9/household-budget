@@ -7,5 +7,6 @@ import { HolidayService } from "./holiday.service";
   imports: [ApiKeyModule],
   controllers: [HolidayController],
   providers: [HolidayService],
+  exports: [HolidayService],
 })
 export class HolidayModule {}

@@ -57,7 +57,7 @@ export default function Dashboard() {
   });
   const { data: projectedBalanceData } = useQuery({
     queryKey: ["dashboard-balance", workspaceId, "projected", monthEnd],
-    queryFn: () => api.dashboardBalance(workspaceId, monthEnd, true),
+    queryFn: () => api.dashboardBalance(workspaceId, monthEnd),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   useEffect(() => {

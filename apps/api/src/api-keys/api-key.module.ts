@@ -6,6 +6,6 @@ import { ApiKeyService } from "./api-key.service";
 @Module({
   imports: [TypeOrmModule.forFeature([ApiKey])],
   providers: [ApiKeyCryptoService, ApiKeyService],
-  exports: [ApiKeyService],
+  exports: [ApiKeyService, ApiKeyCryptoService],
 })
 export class ApiKeyModule {}
