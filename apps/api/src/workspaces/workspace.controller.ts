@@ -1,1 +1,116 @@
-import{Body,Controller,Delete,Get,Param,Patch,Post,UseGuards}from'@nestjs/common';import{AuthGuard}from'@nestjs/passport';import{IsBoolean,IsHexColor,IsOptional,IsString,MinLength}from'class-validator';import{AuthUser}from'../auth/auth-user.decorator';import{WorkspaceService}from'./workspace.service';class NameDto{@IsString()@MinLength(2)name!:string}class CodeDto{@IsString()code!:string}class CategoryDto{@IsString()@MinLength(1)name!:string;@IsHexColor()color!:string}class UpdateCategoryDto{@IsOptional()@IsString()@MinLength(1)name?:string;@IsOptional()@IsHexColor()color?:string;@IsOptional()@IsBoolean()isActive?:boolean}@UseGuards(AuthGuard('jwt'))@Controller('workspaces')export class WorkspaceController{constructor(private s:WorkspaceService){}@Get()list(@AuthUser()u:{id:string}){return this.s.list(u.id)}@Post()create(@AuthUser()u:{id:string},@Body()d:NameDto){return this.s.create(u.id,d.name)}@Post('join')join(@AuthUser()u:{id:string},@Body()d:CodeDto){return this.s.join(u.id,d.code)}@Get(':id/settings')settings(@AuthUser()u:{id:string},@Param('id')id:string){return this.s.settings(u.id,id)}@Patch(':id')update(@AuthUser()u:{id:string},@Param('id')id:string,@Body()d:NameDto){return this.s.update(u.id,id,d.name)}@Delete(':id')remove(@AuthUser()u:{id:string},@Param('id')id:string){return this.s.remove(u.id,id)}@Delete(':id/members/:memberId')removeMember(@AuthUser()u:{id:string},@Param('id')id:string,@Param('memberId')memberId:string){return this.s.removeMember(u.id,id,memberId)}@Post(':id/categories')addCategory(@AuthUser()u:{id:string},@Param('id')id:string,@Body()d:CategoryDto){return this.s.addCategory(u.id,id,d.name,d.color)}@Patch(':id/categories/:categoryId')updateCategory(@AuthUser()u:{id:string},@Param('id')id:string,@Param('categoryId')categoryId:string,@Body()d:UpdateCategoryDto){return this.s.updateCategory(u.id,id,categoryId,d)}@Delete(':id/categories/:categoryId')removeCategory(@AuthUser()u:{id:string},@Param('id')id:string,@Param('categoryId')categoryId:string){return this.s.removeCategory(u.id,id,categoryId)}@Post(':id/invites')invite(@AuthUser()u:{id:string},@Param('id')id:string){return this.s.invite(u.id,id)}}
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import {
+  IsBoolean,
+  IsHexColor,
+  IsOptional,
+  IsString,
+  MinLength,
+} from "class-validator";
+import { AuthUser } from "../auth/auth-user.decorator";
+import { WorkspaceService } from "./workspace.service";
+class NameDto {
+  @IsString() @MinLength(2) name!: string;
+}
+class CodeDto {
+  @IsString() code!: string;
+}
+class CategoryDto {
+  @IsString() @MinLength(1) name!: string;
+  @IsHexColor() color!: string;
+}
+class UpdateCategoryDto {
+  @IsOptional() @IsString() @MinLength(1) name?: string;
+  @IsOptional() @IsHexColor() color?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
+@UseGuards(AuthGuard("jwt"))
+@Controller("workspaces")
+export class WorkspaceController {
+  constructor(private s: WorkspaceService) {}
+  @Get() list(@AuthUser() u: { id: string }) {
+    return this.s.list(u.id);
+  }
+  @Post() create(@AuthUser() u: { id: string }, @Body() d: NameDto) {
+    return this.s.create(u.id, d.name);
+  }
+  @Post("join") join(@AuthUser() u: { id: string }, @Body() d: CodeDto) {
+    return this.s.join(u.id, d.code);
+  }
+  @Get(":id/settings") settings(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+  ) {
+    return this.s.settings(u.id, id);
+  }
+  @Patch(":id") update(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Body() d: NameDto,
+  ) {
+    return this.s.update(u.id, id, d.name);
+  }
+  @Delete(":id") remove(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+  ) {
+    return this.s.remove(u.id, id);
+  }
+  @Delete(":id/members/:memberId") removeMember(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Param("memberId") memberId: string,
+  ) {
+    return this.s.removeMember(u.id, id, memberId);
+  }
+  @Post(":id/categories") addCategory(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Body() d: CategoryDto,
+  ) {
+    return this.s.addCategory(u.id, id, d.name, d.color);
+  }
+  @Patch(":id/categories/:categoryId") updateCategory(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Param("categoryId") categoryId: string,
+    @Body() d: UpdateCategoryDto,
+  ) {
+    return this.s.updateCategory(u.id, id, categoryId, d);
+  }
+  @Delete(":id/categories/:categoryId") removeCategory(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Param("categoryId") categoryId: string,
+  ) {
+    return this.s.removeCategory(u.id, id, categoryId);
+  }
+  @Post(":id/invites") invite(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+  ) {
+    return this.s.invite(u.id, id);
+  }
+  @Get(":id/invites") listInvites(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+  ) {
+    return this.s.listInvites(u.id, id);
+  }
+  @Delete(":id/invites/:inviteId") revokeInvite(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Param("inviteId") inviteId: string,
+  ) {
+    return this.s.revokeInvite(u.id, id, inviteId);
+  }
+}

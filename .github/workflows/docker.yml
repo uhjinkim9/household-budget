@@ -47,7 +47,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,prefix=${{ github.ref_name }}-,format=short
+            type=raw,value=build-${{ github.run_number }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -86,10 +86,9 @@ jobs:
 
       - name: Update application tag
         env:
-          IMAGE_TAG: main-${{ github.sha }}
+          IMAGE_TAG: build-${{ github.run_number }}
         run: |
           set -euo pipefail
-          IMAGE_TAG="${IMAGE_TAG:0:12}"
           VALUES_FILE="${CHART_PATH}/values.yaml"
 
           test -f "${VALUES_FILE}"
@@ -98,7 +97,7 @@ jobs:
 
       - name: Commit and push Helm values
         env:
-          SOURCE_SHA: ${{ github.sha }}
+          IMAGE_TAG: build-${{ github.run_number }}
         run: |
           set -euo pipefail
           VALUES_FILE="${CHART_PATH}/values.yaml"
@@ -111,7 +110,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "ci: deploy household-budget ${SOURCE_SHA:0:7} [skip ci]"
+          git commit -m "ci: deploy household-budget ${IMAGE_TAG} [skip ci]"
           git push origin main
 
   notify:
@@ -140,4 +139,3 @@ jobs:
           title: "❌ 빌드 실패: household-budget"
           description: "로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           color: 0xED4245
-

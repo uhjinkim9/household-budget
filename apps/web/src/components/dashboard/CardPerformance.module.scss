@@ -1,1 +1,83 @@
-@use '../../styles/tokens' as *;.panel{@include card;padding:22px}.panel header{display:flex;justify-content:space-between;align-items:start}.panel h2{font-size:17px;margin:0 0 5px}.panel p{margin:0;color:$muted;font-size:13px}.panel header button{border:0;background:none;color:$green;font-size:13px;font-weight:700}.list{display:grid;margin-top:12px}.list article{display:flex;align-items:center;gap:13px;padding:16px 0;border-bottom:1px solid $line}.list article:last-child{border:0}.cardIcon{width:42px;height:42px;border-radius:12px;background:$mint;color:$green;display:grid;place-items:center}.info{flex:1;display:grid;gap:8px}.info>div:first-child{display:flex;justify-content:space-between}.info span,.info small{color:$muted;font-size:12px}.info em{font-style:normal;color:$ink}.track{height:6px;border-radius:20px;background:#edf0ed;overflow:hidden}.track i{display:block;height:100%;background:$green;border-radius:20px}.list article>strong{font-size:14px;color:$green}
+@use "../../styles/tokens" as *;
+.panel {
+  @include card;
+  padding: 22px;
+}
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.panel h2 {
+  font-size: 17px;
+  margin: 0 0 5px;
+}
+.panel p {
+  margin: 0;
+  color: $muted;
+  font-size: 13px;
+}
+.panel header button {
+  border: 0;
+  background: none;
+  color: $green;
+  font-size: 13px;
+  font-weight: 700;
+}
+.list {
+  display: grid;
+  margin-top: 12px;
+}
+.list article {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px 0;
+  border-bottom: 1px solid $line;
+}
+.list article:last-child {
+  border: 0;
+}
+.cardIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: $mint;
+  color: $green;
+  display: grid;
+  place-items: center;
+}
+.info {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+.info > div:first-child {
+  display: flex;
+  justify-content: space-between;
+}
+.info span,
+.info small {
+  color: $muted;
+  font-size: 12px;
+}
+.info em {
+  font-style: normal;
+  color: $ink;
+}
+.track {
+  height: 6px;
+  border-radius: 20px;
+  background: #edf0ed;
+  overflow: hidden;
+}
+.track i {
+  display: block;
+  height: 100%;
+  background: $green;
+  border-radius: 20px;
+}
+.list article > strong {
+  font-size: 14px;
+  color: $green;
+}
