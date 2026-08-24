@@ -157,6 +157,23 @@ export class DashboardController {
     };
   }
 
+  @Get("next-card-payment-balance")
+  async nextCardPaymentBalance(
+    @AuthUser() user: { id: string },
+    @Query("workspaceId") workspaceId: string,
+    @Query("asOf") asOf: string,
+  ) {
+    await this.access.assertEditor(user.id, workspaceId);
+    const cards = await this.paymentMethods.findBy({
+      workspaceId,
+      type: PaymentMethodType.CREDIT_CARD,
+    });
+    const paymentDate = await this.nextCreditCardPaymentDate(cards, asOf);
+    if (!paymentDate) return null;
+    const { balance } = await this.balance(user, workspaceId, paymentDate);
+    return { paymentDate, balance };
+  }
+
   @Get("category-report")
   async categoryReport(
     @AuthUser() user: { id: string },
@@ -312,5 +329,29 @@ export class DashboardController {
       }
     }
     return paid;
+  }
+
+  private async nextCreditCardPaymentDate(
+    cards: PaymentMethod[],
+    asOf: string,
+  ) {
+    const [year, month] = asOf.split("-").map(Number);
+    const currentIndex = year * 12 + month - 1;
+    const dates: string[] = [];
+    for (const card of cards) {
+      if (!card.billingDay) continue;
+      for (const index of [currentIndex - 1, currentIndex, currentIndex + 1]) {
+        const paymentYear = Math.floor(index / 12);
+        const paymentMonth = (index % 12) + 1;
+        const scheduled = this.dateWithClampedDay(
+          paymentYear,
+          paymentMonth,
+          card.billingDay,
+        );
+        const actual = await this.businessDays.nextBusinessDay(scheduled);
+        if (actual >= asOf) dates.push(actual);
+      }
+    }
+    return dates.sort()[0] ?? null;
   }
 }

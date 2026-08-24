@@ -1,18 +1,19 @@
 import Link from "next/link";
 import s from "./SummaryCards.module.scss";
 
-const money = (value: number) =>
-  `${value.toLocaleString("ko-KR")}원`;
+const money = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
 export function SummaryCards({
   balance,
   projectedBalance,
+  projectedLabel,
   spent,
   fixed,
   variable,
 }: {
   balance: number;
-  projectedBalance: number;
+  projectedBalance?: number;
+  projectedLabel?: string;
   spent: number;
   fixed: number;
   variable: number;
@@ -24,7 +25,9 @@ export function SummaryCards({
       hint: "오늘까지의 체크카드 소비 반영",
       tone: "balance",
       type: "BALANCE",
-      projected: money(projectedBalance),
+      projected:
+        projectedBalance === undefined ? undefined : money(projectedBalance),
+      projectedLabel,
     },
     {
       label: "이번 달 소비",
@@ -64,7 +67,7 @@ export function SummaryCards({
           <strong>{item.value}</strong>
           {item.projected && (
             <div className={s.projected}>
-              <span>말일 예상 잔액</span>
+              <span>{item.projectedLabel}</span>
               <b>{item.projected}</b>
             </div>
           )}
@@ -75,4 +78,3 @@ export function SummaryCards({
     </section>
   );
 }
-

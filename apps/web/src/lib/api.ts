@@ -111,6 +111,10 @@ export const api = {
       mode: "CUMULATIVE" | "MONTHLY_RESET";
       resetAt: string | null;
     }>(`/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}`),
+  nextCardPaymentBalance: (workspaceId: string, asOf: string) =>
+    request<{ paymentDate: string; balance: number } | null>(
+      `/dashboard/next-card-payment-balance?workspaceId=${workspaceId}&asOf=${asOf}`,
+    ),
   categoryReport: (workspaceId: string, from: string, to: string) =>
     request<{
       total: number;

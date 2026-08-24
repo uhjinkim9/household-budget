@@ -13,7 +13,7 @@ import { DailyNoteModal } from "@/components/dashboard/DailyNoteModal";
 import { api } from "@/lib/api";
 import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
-import { monthBounds, toLocalDateString, yearBounds } from "@/lib/date-parser";
+import { formatDate, toLocalDateString, yearBounds } from "@/lib/date-parser";
 import s from "./page.module.scss";
 export default function Dashboard() {
   const router = useRouter();
@@ -29,7 +29,6 @@ export default function Dashboard() {
   });
   const workspaceId = workspace?.id ?? "";
   const balanceAsOf = toLocalDateString();
-  const monthEnd = monthBounds().to;
   const { data: items = [] } = useQuery({
     queryKey: ["transactions", workspaceId, range],
     queryFn: () => api.transactions(workspaceId, range.from, range.to),
@@ -55,9 +54,9 @@ export default function Dashboard() {
     queryFn: () => api.dashboardBalance(workspaceId, balanceAsOf),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
-  const { data: projectedBalanceData } = useQuery({
-    queryKey: ["dashboard-balance", workspaceId, "projected", monthEnd],
-    queryFn: () => api.dashboardBalance(workspaceId, monthEnd),
+  const { data: nextCardPaymentBalance } = useQuery({
+    queryKey: ["next-card-payment-balance", workspaceId, balanceAsOf],
+    queryFn: () => api.nextCardPaymentBalance(workspaceId, balanceAsOf),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   useEffect(() => {
@@ -116,6 +115,9 @@ export default function Dashboard() {
     await qc.invalidateQueries({
       queryKey: ["dashboard-balance", workspaceId],
     });
+    await qc.invalidateQueries({
+      queryKey: ["next-card-payment-balance", workspaceId],
+    });
   }
   async function remove() {
     if (!workspaceId || !selected) return;
@@ -123,6 +125,9 @@ export default function Dashboard() {
     await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
     await qc.invalidateQueries({
       queryKey: ["dashboard-balance", workspaceId],
+    });
+    await qc.invalidateQueries({
+      queryKey: ["next-card-payment-balance", workspaceId],
     });
   }
   async function saveNote(value: { date: string; content: string }) {
@@ -162,7 +167,12 @@ export default function Dashboard() {
         </header>
         <SummaryCards
           balance={summary.balance}
-          projectedBalance={projectedBalanceData?.balance ?? summary.balance}
+          projectedBalance={nextCardPaymentBalance?.balance}
+          projectedLabel={
+            nextCardPaymentBalance
+              ? `${formatDate(nextCardPaymentBalance.paymentDate)} 결제 후 예상`
+              : undefined
+          }
           spent={summary.fixed + summary.variable}
           fixed={summary.fixed}
           variable={summary.variable}
