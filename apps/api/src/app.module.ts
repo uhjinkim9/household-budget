@@ -9,8 +9,10 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { UsersModule } from "./users/users.module";
 import { ApiKeyModule } from "./api-keys/api-key.module";
 import { HolidayModule } from "./holidays/holiday.module";
+import { HealthController } from "./health.controller";
 
 @Module({
+  controllers: [HealthController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,

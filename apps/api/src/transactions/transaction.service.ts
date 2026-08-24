@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, Repository } from "typeorm";
-import { Transaction } from "../entities/transaction.entity";
+import { Between, Not, Repository } from "typeorm";
+import { Transaction, TransactionType } from "../entities/transaction.entity";
 
 @Injectable()
 export class TransactionService {
@@ -10,9 +10,13 @@ export class TransactionService {
     private readonly transactions: Repository<Transaction>,
   ) {}
 
-  list(workspaceId: string, from: string, to: string) {
+  list(workspaceId: string, from: string, to: string, viewerOnly = false) {
     return this.transactions.find({
-      where: { workspaceId, date: Between(from, to) },
+      where: {
+        workspaceId,
+        date: Between(from, to),
+        ...(viewerOnly ? { type: Not(TransactionType.BALANCE) } : {}),
+      },
       order: { date: "ASC", createdAt: "ASC" },
     });
   }
@@ -39,4 +43,3 @@ export class TransactionService {
     return { id };
   }
 }
-

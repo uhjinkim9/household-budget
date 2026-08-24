@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CalendarView } from "calendar-mercury-lab";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -13,6 +14,7 @@ import type { Transaction, TransactionType } from "@/lib/types";
 import { monthBounds, toLocalDateString, yearBounds } from "@/lib/date-parser";
 import s from "./page.module.scss";
 export default function Dashboard() {
+  const router = useRouter();
   const range = yearBounds(),
     qc = useQueryClient();
   const {
@@ -34,18 +36,22 @@ export default function Dashboard() {
   const { data: methods = [] } = useQuery({
     queryKey: ["payment-methods", workspaceId],
     queryFn: () => api.paymentMethods(workspaceId),
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   const { data: balanceData } = useQuery({
     queryKey: ["dashboard-balance", workspaceId, balanceAsOf],
     queryFn: () => api.dashboardBalance(workspaceId, balanceAsOf),
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   const { data: projectedBalanceData } = useQuery({
     queryKey: ["dashboard-balance", workspaceId, monthEnd],
     queryFn: () => api.dashboardBalance(workspaceId, monthEnd),
-    enabled: Boolean(workspaceId),
+    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
+  useEffect(() => {
+    if (workspace?.role === "VIEWER")
+      router.replace("/transactions?type=SPENDING");
+  }, [workspace?.role, router]);
   const [view, setView] = useState<CalendarView>("month"),
     [type, setType] = useState<TransactionType | null>(null),
     [date, setDate] = useState(() => toLocalDateString()),
@@ -85,13 +91,17 @@ export default function Dashboard() {
     if (selected) await api.updateTransaction(selected.id, body);
     else await api.createTransaction(body);
     await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
-    await qc.invalidateQueries({ queryKey: ["dashboard-balance", workspaceId] });
+    await qc.invalidateQueries({
+      queryKey: ["dashboard-balance", workspaceId],
+    });
   }
   async function remove() {
     if (!workspaceId || !selected) return;
     await api.deleteTransaction(selected.id, workspaceId);
     await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
-    await qc.invalidateQueries({ queryKey: ["dashboard-balance", workspaceId] });
+    await qc.invalidateQueries({
+      queryKey: ["dashboard-balance", workspaceId],
+    });
   }
   if (isLoading)
     return <main className={s.state}>가계를 준비하고 있어요…</main>;
@@ -101,6 +111,8 @@ export default function Dashboard() {
         가계를 불러오지 못했습니다. 서버 연결을 확인해주세요.
       </main>
     );
+  if (workspace.role === "VIEWER")
+    return <main className={s.state}>거래 내역으로 이동하고 있어요…</main>;
   return (
     <div className={s.shell}>
       <Sidebar />
@@ -144,10 +156,6 @@ export default function Dashboard() {
               cards={methods.filter((x) => x.type.includes("CARD"))}
               items={items}
             />
-            <section className={s.tip}>
-              <b>이번 달 한 줄 요약</b>
-              <p>식비 비중을 조금만 줄이면 다음 달 저축 여유가 더 생겨요.</p>
-            </section>
           </aside>
         </div>
       </main>

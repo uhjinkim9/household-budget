@@ -76,15 +76,17 @@ export default function TransactionsPage() {
     return monthBounds(reference);
   }, [rangeMode, referenceDate, customFrom, customTo]);
 
-  const validRange = Boolean(
-    range.from && range.to && range.from <= range.to,
-  );
+  const validRange = Boolean(range.from && range.to && range.from <= range.to);
 
   const { data: workspace, isLoading: workspaceLoading } = useQuery({
     queryKey: ["active-workspace"],
     queryFn: api.getOrCreateWorkspace,
   });
   const workspaceId = workspace?.id ?? "";
+  useEffect(() => {
+    if (workspace?.role === "VIEWER" && filter === "BALANCE")
+      changeFilter("SPENDING");
+  }, [workspace?.role, filter]);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["transactions", workspaceId, range.from, range.to],
@@ -101,16 +103,11 @@ export default function TransactionsPage() {
   const visible = useMemo(
     () =>
       items.filter((item) =>
-        filter === "SPENDING"
-          ? item.type !== "BALANCE"
-          : item.type === filter,
+        filter === "SPENDING" ? item.type !== "BALANCE" : item.type === filter,
       ),
     [items, filter],
   );
-  const total = visible.reduce(
-    (sum, item) => sum + Number(item.amount),
-    0,
-  );
+  const total = visible.reduce((sum, item) => sum + Number(item.amount), 0);
 
   function changeFilter(next: Filter) {
     setFilter(next);
@@ -119,17 +116,14 @@ export default function TransactionsPage() {
     router.replace(`/transactions?${params.toString()}`);
   }
 
-  async function save(
-    value: Omit<Transaction, "id" | "workspaceId">,
-  ) {
+  async function save(value: Omit<Transaction, "id" | "workspaceId">) {
     if (!selected || !workspaceId) return;
     await api.updateTransaction(selected.id, {
       ...value,
       workspaceId,
       recurrenceRule:
         value.type === "FIXED" ||
-        (value.type === "BALANCE" &&
-          value.balanceMode === "MONTHLY_RESET")
+        (value.type === "BALANCE" && value.balanceMode === "MONTHLY_RESET")
           ? "MONTHLY"
           : undefined,
     });
@@ -166,7 +160,9 @@ export default function TransactionsPage() {
             className={s.filter}
             options={[
               { value: "SPENDING", label: "전체 소비" },
-              { value: "BALANCE", label: "잔액" },
+              ...(workspace?.role === "VIEWER"
+                ? []
+                : [{ value: "BALANCE", label: "잔액" }]),
               { value: "FIXED", label: "정기 지출" },
               { value: "VARIABLE", label: "일시적 소비" },
             ]}
@@ -222,8 +218,7 @@ export default function TransactionsPage() {
                 defaultValue={referenceDate.slice(0, 4)}
                 onChange={(event) => {
                   const year = event.target.value;
-                  if (/^\d{4}$/.test(year))
-                    setReferenceDate(`${year}-01-01`);
+                  if (/^\d{4}$/.test(year)) setReferenceDate(`${year}-01-01`);
                 }}
                 aria-label="조회 연도"
               />
@@ -250,9 +245,7 @@ export default function TransactionsPage() {
             )}
           </div>
           <strong>{range.label}</strong>
-          {!validRange && (
-            <small>종료일은 시작일보다 빠를 수 없습니다.</small>
-          )}
+          {!validRange && <small>종료일은 시작일보다 빠를 수 없습니다.</small>}
         </section>
 
         <section className={s.summary}>
@@ -267,10 +260,7 @@ export default function TransactionsPage() {
           ) : visible.length === 0 ? (
             <div className={s.empty}>
               <b>등록된 내역이 없습니다.</b>
-              <p>
-                대시보드 캘린더나 생성 버튼에서 새 내역을
-                추가해주세요.
-              </p>
+              <p>대시보드 캘린더나 생성 버튼에서 새 내역을 추가해주세요.</p>
               <Link href="/home">대시보드로 돌아가기</Link>
             </div>
           ) : (
@@ -299,9 +289,7 @@ export default function TransactionsPage() {
                     <b>{item.title}</b>
                     <small>{item.category}</small>
                   </div>
-                  <span
-                    className={`${s.badge} ${s[item.type.toLowerCase()]}`}
-                  >
+                  <span className={`${s.badge} ${s[item.type.toLowerCase()]}`}>
                     {typeLabels[item.type]}
                   </span>
                   <span className={s.method}>
@@ -328,6 +316,7 @@ export default function TransactionsPage() {
         onClose={() => setSelected(null)}
         onSubmit={save}
         onDelete={selected ? remove : undefined}
+        readOnly={workspace?.role === "VIEWER"}
       />
     </div>
   );

@@ -14,13 +14,12 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/household-budget
   GITOPS_REPOSITORY: uhjinkim9/helm-chart
   CHART_PATH: charts/namespace-household-budget/household-budget
 
 jobs:
   build-and-push:
-    name: Build & Push application
+    name: Build & Push API/Web
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,29 +40,51 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract image metadata
-        id: meta
+      - name: Extract API image metadata
+        id: meta-api
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/household-budget-api
           tags: |
             type=raw,value=build-${{ github.run_number }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push image
+      - name: Build and push API image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: apps/api/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Extract Web image metadata
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/household-budget-web
+          tags: |
+            type=raw,value=build-${{ github.run_number }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-web.outputs.tags }}
+          labels: ${{ steps.meta-web.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_API_URL=/api
-          cache-from: type=gha,scope=application
-          cache-to: type=gha,scope=application,mode=max
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
 
   update-gitops:
     name: Update Helm image tag
@@ -84,7 +105,7 @@ jobs:
           ref: main
           token: ${{ secrets.GITOPS_TOKEN }}
 
-      - name: Update application tag
+      - name: Update API and Web tags
         env:
           IMAGE_TAG: build-${{ github.run_number }}
         run: |
@@ -92,8 +113,10 @@ jobs:
           VALUES_FILE="${CHART_PATH}/values.yaml"
 
           test -f "${VALUES_FILE}"
-          yq -i '.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
-          test "$(yq '.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+          yq -i '.api.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
+          yq -i '.web.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
+          test "$(yq '.api.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+          test "$(yq '.web.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
 
       - name: Commit and push Helm values
         env:
@@ -127,7 +150,7 @@ jobs:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
           title: "✅ 빌드 성공: household-budget"
-          description: "프론트/API 통합 이미지 배포가 시작됩니다."
+          description: "동일 태그의 프론트/API 배포가 시작됩니다."
           color: 0x57F287
 
       - name: Notify failure

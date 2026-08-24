@@ -59,27 +59,12 @@
   align-content: start;
   gap: 15px;
 }
-.tip {
-  @include card;
-  padding: 20px;
-  background: #fff9ee;
-  border-color: #eee3cc;
-}
-.tip b {
-  font-size: 14px;
-}
-.tip p {
-  font-size: 13px;
-  color: #786d5a;
-  line-height: 1.6;
-  margin: 8px 0 0;
-}
 @media (max-width: 1150px) {
   .content {
     grid-template-columns: 1fr;
   }
   .content > aside {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 850px) {

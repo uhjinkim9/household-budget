@@ -13,14 +13,16 @@
 
 ## 배포
 
-프론트엔드와 API는 루트 `Dockerfile`에서 하나의 이미지로 빌드됩니다. 컨테이너는 3000 포트만 공개하며 `/api`와 `/docs` 요청을 내부 API 프로세스로 전달합니다.
+프론트엔드와 API는 독립 이미지로 빌드되며 동일한 릴리스 태그로 함께 배포됩니다.
 
 ```bash
-docker build -t household-budget .
-docker run --rm -p 3000:3000 --env-file .env household-budget
+docker build -f apps/api/Dockerfile -t household-budget-api .
+docker build -f apps/web/Dockerfile -t household-budget-web .
+docker run --rm -p 4000:4000 --env-file .env household-budget-api
+docker run --rm -p 3000:3000 household-budget-web
 ```
 
-`main` 브랜치에 push하면 GitHub Actions가 `ghcr.io/<owner>/household-budget` 이미지를 빌드하고, `uhjinkim9/helm-chart` 저장소의 `charts/namespace-household-budget/household-budget/values.yaml`에서 `.image.tag`를 갱신합니다. 저장소에는 다음 GitHub Actions secret이 필요합니다.
+`main` 브랜치에 push하면 GitHub Actions가 `ghcr.io/<owner>/household-budget-api`와 `ghcr.io/<owner>/household-budget-web` 이미지를 빌드하고, `uhjinkim9/helm-chart` 저장소의 `charts/namespace-household-budget/household-budget/values.yaml`에서 두 이미지 태그를 함께 갱신합니다. 저장소에는 다음 GitHub Actions secret이 필요합니다.
 
 - `GITOPS_TOKEN`: Helm 저장소를 수정할 수 있는 토큰
 - `DISCORD_WEBHOOK`: 배포 결과 알림 webhook

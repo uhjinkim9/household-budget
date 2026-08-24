@@ -12,6 +12,8 @@ import {
   PaymentMethod,
   PaymentMethodType,
 } from "../entities/payment-method.entity";
+import { AuthUser } from "../auth/auth-user.decorator";
+import { WorkspaceAccessService } from "../workspaces/workspace-access.service";
 
 @UseGuards(AuthGuard("jwt"))
 @Controller("dashboard")
@@ -21,13 +23,16 @@ export class DashboardController {
     private readonly transactions: Repository<Transaction>,
     @InjectRepository(PaymentMethod)
     private readonly paymentMethods: Repository<PaymentMethod>,
+    private readonly access: WorkspaceAccessService,
   ) {}
 
   @Get("balance")
   async balance(
+    @AuthUser() user: { id: string },
     @Query("workspaceId") workspaceId: string,
     @Query("asOf") asOf: string,
   ) {
+    await this.access.assertEditor(user.id, workspaceId);
     const rows = await this.transactions.find({
       where: {
         workspaceId,
@@ -85,10 +90,12 @@ export class DashboardController {
 
   @Get("summary")
   async summary(
+    @AuthUser() user: { id: string },
     @Query("workspaceId") workspaceId: string,
     @Query("from") from: string,
     @Query("to") to: string,
   ) {
+    await this.access.assertEditor(user.id, workspaceId);
     const rows = await this.transactions.find({
       where: {
         workspaceId,
@@ -103,21 +110,19 @@ export class DashboardController {
     const fixed = rows
       .filter((row) => row.type === TransactionType.FIXED)
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const { balance } = await this.balance(workspaceId, to);
+    const { balance } = await this.balance(user, workspaceId, to);
 
     const cards = methods
       .filter((method) =>
-        [
-          PaymentMethodType.CREDIT_CARD,
-          PaymentMethodType.CHECK_CARD,
-        ].includes(method.type),
+        [PaymentMethodType.CREDIT_CARD, PaymentMethodType.CHECK_CARD].includes(
+          method.type,
+        ),
       )
       .map((card) => {
         const used = rows
           .filter(
             (row) =>
-              row.paymentMethodId === card.id &&
-              !row.isPerformanceExcluded,
+              row.paymentMethodId === card.id && !row.isPerformanceExcluded,
           )
           .reduce((sum, row) => sum + Number(row.amount), 0);
         const target = Number(card.targetPerformance);
@@ -166,11 +171,7 @@ export class DashboardController {
     return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
   }
 
-  private monthlyOccurrenceCount(
-    masterDate: string,
-    from: string,
-    to: string,
-  ) {
+  private monthlyOccurrenceCount(masterDate: string, from: string, to: string) {
     const [masterYear, masterMonth, masterDay] = masterDate
       .split("-")
       .map(Number);
@@ -180,15 +181,15 @@ export class DashboardController {
     const fromIndex = fromYear * 12 + fromMonth - 1;
     const toIndex = toYear * 12 + toMonth - 1;
     let count = 0;
-    for (let index = Math.max(masterIndex, fromIndex); index <= toIndex; index++) {
+    for (
+      let index = Math.max(masterIndex, fromIndex);
+      index <= toIndex;
+      index++
+    ) {
       const year = Math.floor(index / 12);
       const month = (index % 12) + 1;
       const occurrence = this.dateWithClampedDay(year, month, masterDay);
-      if (
-        occurrence >= masterDate &&
-        occurrence >= from &&
-        occurrence <= to
-      )
+      if (occurrence >= masterDate && occurrence >= from && occurrence <= to)
         count += 1;
     }
     return count;

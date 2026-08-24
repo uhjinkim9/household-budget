@@ -12,12 +12,14 @@ import { AuthGuard } from "@nestjs/passport";
 import {
   IsBoolean,
   IsHexColor,
+  IsEnum,
   IsOptional,
   IsString,
   MinLength,
 } from "class-validator";
 import { AuthUser } from "../auth/auth-user.decorator";
 import { WorkspaceService } from "./workspace.service";
+import { WorkspaceRole } from "../entities/workspace.entity";
 class NameDto {
   @IsString() @MinLength(2) name!: string;
 }
@@ -32,6 +34,9 @@ class UpdateCategoryDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
   @IsOptional() @IsHexColor() color?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
+}
+class MemberRoleDto {
+  @IsEnum(WorkspaceRole) role!: WorkspaceRole;
 }
 @UseGuards(AuthGuard("jwt"))
 @Controller("workspaces")
@@ -71,6 +76,14 @@ export class WorkspaceController {
     @Param("memberId") memberId: string,
   ) {
     return this.s.removeMember(u.id, id, memberId);
+  }
+  @Patch(":id/members/:memberId/role") updateMemberRole(
+    @AuthUser() u: { id: string },
+    @Param("id") id: string,
+    @Param("memberId") memberId: string,
+    @Body() d: MemberRoleDto,
+  ) {
+    return this.s.updateMemberRole(u.id, id, memberId, d.role);
   }
   @Post(":id/categories") addCategory(
     @AuthUser() u: { id: string },

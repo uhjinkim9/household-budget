@@ -79,7 +79,7 @@ export class WorkspaceService {
     });
   }
   async settings(userId: string, id: string) {
-    await this.assertMember(userId, id);
+    await this.assertOwner(userId, id);
     const workspace = await this.w.findOneBy({ id });
     if (!workspace) throw new NotFoundException();
     const members = await this.m
@@ -128,6 +128,24 @@ export class WorkspaceService {
       throw new BadRequestException("가계 소유자는 삭제할 수 없습니다.");
     await this.m.remove(target);
     return { id: memberId };
+  }
+  async updateMemberRole(
+    userId: string,
+    workspaceId: string,
+    memberId: string,
+    role: WorkspaceRole,
+  ) {
+    await this.assertOwner(userId, workspaceId);
+    const target = await this.m.findOneBy({ id: memberId, workspaceId });
+    if (!target) throw new NotFoundException();
+    if (target.role === WorkspaceRole.OWNER)
+      throw new BadRequestException("가계 소유자의 권한은 변경할 수 없습니다.");
+    if (![WorkspaceRole.MEMBER, WorkspaceRole.VIEWER].includes(role))
+      throw new BadRequestException(
+        "구성원 또는 조회자 권한만 지정할 수 있습니다.",
+      );
+    target.role = role;
+    return this.m.save(target);
   }
   async addCategory(
     userId: string,

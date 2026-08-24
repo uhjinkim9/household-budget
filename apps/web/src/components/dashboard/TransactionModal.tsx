@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type {
-  PaymentMethod,
-  Transaction,
-  TransactionType,
-} from "@/lib/types";
+import type { PaymentMethod, Transaction, TransactionType } from "@/lib/types";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -40,6 +36,7 @@ export function TransactionModal({
   onClose,
   onSubmit,
   onDelete,
+  readOnly = false,
 }: {
   type: TransactionType | null;
   date: string;
@@ -48,6 +45,7 @@ export function TransactionModal({
   onClose: () => void;
   onSubmit: (value: TransactionFormValue) => Promise<void>;
   onDelete?: () => Promise<void>;
+  readOnly?: boolean;
 }) {
   const activeType = transaction?.type ?? type;
   const editing = Boolean(transaction);
@@ -69,8 +67,7 @@ export function TransactionModal({
         amount: Number(form.get("amount")),
         category: String(form.get("category")),
         date: String(form.get("date")),
-        paymentMethodId:
-          String(form.get("paymentMethodId") || "") || undefined,
+        paymentMethodId: String(form.get("paymentMethodId") || "") || undefined,
         balanceMode:
           activeType === "BALANCE"
             ? form.get("monthlyReset")
@@ -120,11 +117,10 @@ export function TransactionModal({
               required
               defaultValue={transaction?.title ?? ""}
               placeholder={
-                activeType === "BALANCE"
-                  ? "통장 잔액"
-                  : "무엇에 사용했나요?"
+                activeType === "BALANCE" ? "통장 잔액" : "무엇에 사용했나요?"
               }
               autoFocus
+              disabled={readOnly}
             />
           </FormField>
 
@@ -135,6 +131,7 @@ export function TransactionModal({
                 required
                 defaultValue={transaction?.amount}
                 placeholder="0"
+                disabled={readOnly}
               />
             </FormField>
             <FormField label="날짜">
@@ -143,6 +140,7 @@ export function TransactionModal({
                 type="date"
                 defaultValue={transaction?.date ?? date}
                 required
+                disabled={readOnly}
               />
             </FormField>
           </div>
@@ -154,6 +152,7 @@ export function TransactionModal({
                 transaction?.category ??
                 (activeType === "BALANCE" ? "잔액" : "식비")
               }
+              disabled={readOnly}
             >
               <option>잔액</option>
               <option>식비</option>
@@ -170,6 +169,7 @@ export function TransactionModal({
               <Select
                 name="paymentMethodId"
                 defaultValue={transaction?.paymentMethodId ?? ""}
+                disabled={readOnly}
               >
                 <option value="">선택 안 함</option>
                 {methods.map((method) => (
@@ -185,14 +185,13 @@ export function TransactionModal({
             <div className={s.balanceOption}>
               <Checkbox
                 name="monthlyReset"
-                defaultChecked={
-                  transaction?.balanceMode === "MONTHLY_RESET"
-                }
+                defaultChecked={transaction?.balanceMode === "MONTHLY_RESET"}
+                disabled={readOnly}
               >
                 매월 이 날짜에 잔액 초기화
                 <small>
-                  선택하면 매월 등록일에 입력한 금액으로 다시 시작해요.
-                  선택하지 않으면 잔액과 체크카드 소비를 계속 누적해요.
+                  선택하면 매월 등록일에 입력한 금액으로 다시 시작해요. 선택하지
+                  않으면 잔액과 체크카드 소비를 계속 누적해요.
                 </small>
               </Checkbox>
             </div>
@@ -200,15 +199,14 @@ export function TransactionModal({
 
           {activeType === "FIXED" && (
             <p className={s.notice}>
-              수정하거나 삭제하면 매월 표시되는 정기 지출 전체에
-              적용됩니다.
+              수정하거나 삭제하면 매월 표시되는 정기 지출 전체에 적용됩니다.
             </p>
           )}
 
           {error && <p className={s.error}>{error}</p>}
 
           <div className={s.actions}>
-            {editing && onDelete && (
+            {!readOnly && editing && onDelete && (
               <Button
                 className={s.delete}
                 type="button"
@@ -225,15 +223,13 @@ export function TransactionModal({
               onClick={onClose}
               disabled={loading}
             >
-              취소
+              {readOnly ? "닫기" : "취소"}
             </Button>
-            <Button disabled={loading}>
-              {loading
-                ? "처리 중…"
-                : editing
-                  ? "수정하기"
-                  : "등록하기"}
-            </Button>
+            {!readOnly && (
+              <Button disabled={loading}>
+                {loading ? "처리 중…" : editing ? "수정하기" : "등록하기"}
+              </Button>
+            )}
           </div>
         </form>
       </Modal>

@@ -61,27 +61,33 @@ export function Sidebar() {
         />
       </div>
       <nav>
-        <Link href="/home" className={pathname === "/home" ? s.active : ""}>
-          ⌂<span>대시보드</span>
-        </Link>
+        {active?.role !== "VIEWER" && (
+          <Link href="/home" className={pathname === "/home" ? s.active : ""}>
+            ⌂<span>대시보드</span>
+          </Link>
+        )}
         <Link
           href="/transactions?type=SPENDING"
           className={pathname === "/transactions" ? s.active : ""}
         >
           ▤<span>거래 내역</span>
         </Link>
-        <Link
-          href="/payment-methods"
-          className={pathname === "/payment-methods" ? s.active : ""}
-        >
-          ▣<span>결제 수단</span>
-        </Link>
-        <Link
-          href="/members"
-          className={pathname === "/members" ? s.active : ""}
-        >
-          ♧<span>가계 구성원</span>
-        </Link>
+        {active?.role === "OWNER" && (
+          <>
+            <Link
+              href="/payment-methods"
+              className={pathname === "/payment-methods" ? s.active : ""}
+            >
+              ▣<span>결제 수단</span>
+            </Link>
+            <Link
+              href="/members"
+              className={pathname === "/members" ? s.active : ""}
+            >
+              ♧<span>가계 구성원</span>
+            </Link>
+          </>
+        )}
       </nav>
       <div className={s.bottom}>
         <Link href="/settings" className={s.user}>
@@ -92,7 +98,13 @@ export function Sidebar() {
           )}
           <div>
             <b>{user.name}</b>
-            <small>가계 관리자</small>
+            <small>
+              {active?.role === "OWNER"
+                ? "가계 관리자"
+                : active?.role === "VIEWER"
+                  ? "조회자"
+                  : "구성원"}
+            </small>
           </div>
           <span className={s.settingsIcon} aria-hidden="true">
             ⚙

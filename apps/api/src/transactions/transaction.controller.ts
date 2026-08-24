@@ -19,11 +19,11 @@ import {
   IsString,
   IsUUID,
 } from "class-validator";
-import {
-  BalanceMode,
-  TransactionType,
-} from "../entities/transaction.entity";
+import { BalanceMode, TransactionType } from "../entities/transaction.entity";
 import { TransactionService } from "./transaction.service";
+import { AuthUser } from "../auth/auth-user.decorator";
+import { WorkspaceAccessService } from "../workspaces/workspace-access.service";
+import { WorkspaceRole } from "../entities/workspace.entity";
 
 class TransactionRangeDto {
   @IsUUID()
@@ -75,15 +75,28 @@ class CreateDto {
 @UseGuards(AuthGuard("jwt"))
 @Controller("transactions")
 export class TransactionController {
-  constructor(private readonly transactions: TransactionService) {}
+  constructor(
+    private readonly transactions: TransactionService,
+    private readonly access: WorkspaceAccessService,
+  ) {}
 
   @Get()
-  list(@Query() query: TransactionRangeDto) {
-    return this.transactions.list(query.workspaceId, query.from, query.to);
+  async list(
+    @AuthUser() user: { id: string },
+    @Query() query: TransactionRangeDto,
+  ) {
+    const member = await this.access.assertViewer(user.id, query.workspaceId);
+    return this.transactions.list(
+      query.workspaceId,
+      query.from,
+      query.to,
+      member.role === WorkspaceRole.VIEWER,
+    );
   }
 
   @Post()
-  create(@Body() dto: CreateDto) {
+  async create(@AuthUser() user: { id: string }, @Body() dto: CreateDto) {
+    await this.access.assertEditor(user.id, dto.workspaceId);
     return this.transactions.create({
       ...dto,
       paymentMethodId: dto.paymentMethodId ?? null,
@@ -97,7 +110,12 @@ export class TransactionController {
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() dto: CreateDto) {
+  async update(
+    @AuthUser() user: { id: string },
+    @Param("id") id: string,
+    @Body() dto: CreateDto,
+  ) {
+    await this.access.assertEditor(user.id, dto.workspaceId);
     return this.transactions.update(id, dto.workspaceId, {
       ...dto,
       paymentMethodId: dto.paymentMethodId ?? null,
@@ -111,7 +129,12 @@ export class TransactionController {
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string, @Query("workspaceId") workspaceId: string) {
+  async remove(
+    @AuthUser() user: { id: string },
+    @Param("id") id: string,
+    @Query("workspaceId") workspaceId: string,
+  ) {
+    await this.access.assertEditor(user.id, workspaceId);
     return this.transactions.remove(id, workspaceId);
   }
 }

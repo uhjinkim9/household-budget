@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { api, type Workspace } from "@/lib/api";
 import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import s from "./WorkspaceSettingsModal.module.scss";
@@ -61,6 +62,14 @@ export function WorkspaceSettingsModal({
       setError(
         e instanceof Error ? e.message : "구성원을 제외하지 못했습니다.",
       );
+    }
+  }
+  async function updateMemberRole(id: string, role: "MEMBER" | "VIEWER") {
+    try {
+      await workspaceSettingsApi.updateMemberRole(workspace!.id, id, role);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "권한을 변경하지 못했습니다.");
     }
   }
   async function addCategory(e: FormEvent<HTMLFormElement>) {
@@ -213,13 +222,23 @@ export function WorkspaceSettingsModal({
                   <b>{member.name}</b>
                   <small>{member.email}</small>
                 </div>
-                <span>
-                  {member.role === "OWNER"
-                    ? "소유자"
-                    : member.role === "VIEWER"
-                      ? "조회자"
-                      : "구성원"}
-                </span>
+                {member.role === "OWNER" ? (
+                  <span>소유자</span>
+                ) : (
+                  <Select
+                    value={member.role}
+                    onChange={(event) =>
+                      updateMemberRole(
+                        member.id,
+                        event.target.value as "MEMBER" | "VIEWER",
+                      )
+                    }
+                    aria-label={`${member.name} 권한`}
+                  >
+                    <option value="MEMBER">구성원</option>
+                    <option value="VIEWER">조회자</option>
+                  </Select>
+                )}
                 {member.role !== "OWNER" && (
                   <Button
                     variant="danger"

@@ -57,6 +57,15 @@ export const workspaceSettingsApi = {
     request(`/workspaces/${workspaceId}/members/${memberId}`, {
       method: "DELETE",
     }),
+  updateMemberRole: (
+    workspaceId: string,
+    memberId: string,
+    role: "MEMBER" | "VIEWER",
+  ) =>
+    request(`/workspaces/${workspaceId}/members/${memberId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
   addCategory: (workspaceId: string, body: { name: string; color: string }) =>
     request<WorkspaceCategory>(`/workspaces/${workspaceId}/categories`, {
       method: "POST",

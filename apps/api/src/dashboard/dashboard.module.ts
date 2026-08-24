@@ -1,1 +1,14 @@
-import{Module}from'@nestjs/common';import{TypeOrmModule}from'@nestjs/typeorm';import{Transaction}from'../entities/transaction.entity';import{PaymentMethod}from'../entities/payment-method.entity';import{DashboardController}from'./dashboard.controller';@Module({imports:[TypeOrmModule.forFeature([Transaction,PaymentMethod])],controllers:[DashboardController]})export class DashboardModule{}
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { Transaction } from "../entities/transaction.entity";
+import { PaymentMethod } from "../entities/payment-method.entity";
+import { DashboardController } from "./dashboard.controller";
+import { WorkspaceModule } from "../workspaces/workspace.module";
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([Transaction, PaymentMethod]),
+    WorkspaceModule,
+  ],
+  controllers: [DashboardController],
+})
+export class DashboardModule {}
