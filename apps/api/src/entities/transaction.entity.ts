@@ -23,7 +23,11 @@ export class Transaction extends TimestampEntity {
   id!: string;
 
   @Index()
-  @Column({ name: "workspace_id", type: "uuid", comment: "거래가 속한 가계 식별자" })
+  @Column({
+    name: "workspace_id",
+    type: "uuid",
+    comment: "거래가 속한 가계 식별자",
+  })
   workspaceId!: string;
 
   @Column({
@@ -50,6 +54,14 @@ export class Transaction extends TimestampEntity {
 
   @Column({ length: 50, comment: "거래 소비 카테고리" })
   category!: string;
+
+  @Column({
+    type: "varchar",
+    length: 500,
+    nullable: true,
+    comment: "거래별로 남기는 간단한 메모",
+  })
+  memo!: string | null;
 
   @Index()
   @Column({ type: "date", comment: "거래 발생일" })

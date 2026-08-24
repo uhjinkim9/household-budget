@@ -18,6 +18,7 @@ export interface Transaction {
   amount: number;
   title: string;
   category: string;
+  memo?: string | null;
   date: string;
   recurrenceRule?: string;
   balanceMode?: BalanceMode | null;

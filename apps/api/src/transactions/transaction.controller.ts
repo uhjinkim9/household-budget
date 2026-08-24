@@ -18,6 +18,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
 } from "class-validator";
 import { BalanceMode, TransactionType } from "../entities/transaction.entity";
 import { TransactionService } from "./transaction.service";
@@ -55,6 +56,11 @@ class CreateDto {
 
   @IsString()
   category!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  memo?: string;
 
   @IsDateString({ strict: true })
   date!: string;
@@ -101,6 +107,7 @@ export class TransactionController {
       ...dto,
       paymentMethodId: dto.paymentMethodId ?? null,
       recurrenceRule: dto.recurrenceRule ?? null,
+      memo: dto.memo?.trim() || null,
       balanceMode:
         dto.type === TransactionType.BALANCE
           ? (dto.balanceMode ?? BalanceMode.CUMULATIVE)
@@ -120,6 +127,7 @@ export class TransactionController {
       ...dto,
       paymentMethodId: dto.paymentMethodId ?? null,
       recurrenceRule: dto.recurrenceRule ?? null,
+      memo: dto.memo?.trim() || null,
       balanceMode:
         dto.type === TransactionType.BALANCE
           ? (dto.balanceMode ?? BalanceMode.CUMULATIVE)

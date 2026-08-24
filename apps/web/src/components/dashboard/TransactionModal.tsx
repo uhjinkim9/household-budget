@@ -11,6 +11,7 @@ import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
 import { MoneyInput } from "../ui/MoneyInput";
 import { Select } from "../ui/Select";
+import { Textarea } from "../ui/Textarea";
 import s from "./TransactionModal.module.scss";
 
 const labels: Record<TransactionType, string> = {
@@ -24,6 +25,7 @@ export interface TransactionFormValue {
   title: string;
   amount: number;
   category: string;
+  memo?: string;
   date: string;
   paymentMethodId?: string;
   balanceMode?: "CUMULATIVE" | "MONTHLY_RESET";
@@ -80,6 +82,7 @@ export function TransactionModal({
         title: String(form.get("title")),
         amount: Number(form.get("amount")),
         category: String(form.get("category")),
+        memo: String(form.get("memo") || "").trim() || undefined,
         date: String(form.get("date")),
         paymentMethodId: String(form.get("paymentMethodId") || "") || undefined,
         balanceMode:
@@ -217,6 +220,22 @@ export function TransactionModal({
             <p className={s.notice}>
               수정하거나 삭제하면 매월 표시되는 정기 지출 전체에 적용됩니다.
             </p>
+          )}
+
+          {activeType !== "BALANCE" && (
+            <FormField
+              label="메모 (선택)"
+              hint="구매처나 기억해둘 내용을 간단히 남겨보세요."
+            >
+              <Textarea
+                name="memo"
+                maxLength={500}
+                rows={3}
+                defaultValue={transaction?.memo ?? ""}
+                placeholder="예: 쿠팡에서 생필품 구매"
+                disabled={readOnly}
+              />
+            </FormField>
           )}
 
           {error && <p className={s.error}>{error}</p>}

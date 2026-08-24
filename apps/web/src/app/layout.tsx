@@ -3,10 +3,10 @@ import "../styles/globals.scss";
 import "calendar-mercury-lab/styles";
 import { Providers } from "./providers";
 
-const environmentLabel = process.env.NODE_ENV === "production" ? "PRD" : "DEV";
+const environmentPrefix = process.env.NODE_ENV === "production" ? "" : "[DEV] ";
 
 export const metadata: Metadata = {
-  title: `[${environmentLabel}] Mercury Lab Household Budget Manager`,
+  title: `${environmentPrefix}Mercury Lab Household Budget Manager`,
   description: "우리 가계의 흐름을 한눈에",
   icons: { icon: "/household-budget-mercury-lab.png" },
 };

@@ -45,7 +45,9 @@ export function Sidebar() {
   return (
     <aside className={s.sidebar}>
       <div className={s.workspaceSwitcher}>
-        <img src="/icon.svg" alt="Mercury Lab" />
+        <Link href="/home" className={s.logo} aria-label="대시보드로 이동">
+          <img src="/icon.svg" alt="Mercury Lab" />
+        </Link>
         <Select
           width="100%"
           tone="dark"
