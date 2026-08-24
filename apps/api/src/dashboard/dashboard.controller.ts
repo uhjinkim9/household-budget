@@ -31,6 +31,7 @@ export class DashboardController {
     @AuthUser() user: { id: string },
     @Query("workspaceId") workspaceId: string,
     @Query("asOf") asOf: string,
+    @Query("includeCreditCard") includeCreditCard?: string,
   ) {
     await this.access.assertEditor(user.id, workspaceId);
     const rows = await this.transactions.find({
@@ -42,9 +43,14 @@ export class DashboardController {
       order: { createdAt: "ASC" },
     });
     const methods = await this.paymentMethods.findBy({ workspaceId });
-    const checkCardIds = new Set(
+    const immediatePaymentMethodIds = new Set(
       methods
-        .filter((method) => method.type === PaymentMethodType.CHECK_CARD)
+        .filter(
+          (method) =>
+            method.type === PaymentMethodType.CHECK_CARD ||
+            (includeCreditCard === "true" &&
+              method.type === PaymentMethodType.CREDIT_CARD),
+        )
         .map((method) => method.id),
     );
     const reset = rows
@@ -65,12 +71,12 @@ export class DashboardController {
           row.date >= from,
       )
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const checkCardSpent = rows
+    const paymentMethodSpent = rows
       .filter(
         (row) =>
           row.type !== TransactionType.BALANCE &&
           Boolean(row.paymentMethodId) &&
-          checkCardIds.has(row.paymentMethodId!),
+          immediatePaymentMethodIds.has(row.paymentMethodId!),
       )
       .reduce((sum, row) => {
         if (row.recurrenceRule === "MONTHLY")
@@ -82,7 +88,7 @@ export class DashboardController {
         return row.date >= from ? sum + Number(row.amount) : sum;
       }, 0);
     return {
-      balance: base + accumulated - checkCardSpent,
+      balance: base + accumulated - paymentMethodSpent,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
     };
@@ -110,7 +116,7 @@ export class DashboardController {
     const fixed = rows
       .filter((row) => row.type === TransactionType.FIXED)
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const { balance } = await this.balance(user, workspaceId, to);
+    const { balance } = await this.balance(user, workspaceId, to, "true");
 
     const cards = methods
       .filter((method) =>

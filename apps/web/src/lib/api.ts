@@ -105,12 +105,18 @@ export const api = {
     request<{ id: string }>(`/transactions/${id}?workspaceId=${workspaceId}`, {
       method: "DELETE",
     }),
-  dashboardBalance: (workspaceId: string, asOf: string) =>
+  dashboardBalance: (
+    workspaceId: string,
+    asOf: string,
+    includeCreditCard = false,
+  ) =>
     request<{
       balance: number;
       mode: "CUMULATIVE" | "MONTHLY_RESET";
       resetAt: string | null;
-    }>(`/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}`),
+    }>(
+      `/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}&includeCreditCard=${includeCreditCard}`,
+    ),
   categoryReport: (workspaceId: string, from: string, to: string) =>
     request<{
       total: number;
