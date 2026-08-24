@@ -25,9 +25,9 @@ import { DailyNoteModule } from "./daily-notes/daily-note.module";
         type: "postgres",
         url: c.getOrThrow<string>("DATABASE_URL"),
         autoLoadEntities: true,
-        synchronize:
-          c.get<string>("DB_SYNCHRONIZE", "true") === "true" &&
-          c.get("NODE_ENV") !== "production",
+        synchronize: true,
+        // c.get<string>("DB_SYNCHRONIZE", "true") === "true" &&
+        // c.get("NODE_ENV") !== "production",
         logging: c.get<string>("DB_LOGGING", "false") === "true",
       }),
     }),
