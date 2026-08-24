@@ -54,7 +54,9 @@ export class HolidayService {
     try {
       payload = await response.json();
     } catch {
-      throw new BadGatewayException("공휴일 정보 응답 형식이 올바르지 않습니다.");
+      throw new BadGatewayException(
+        "공휴일 정보 응답 형식이 올바르지 않습니다.",
+      );
     }
 
     const header = payload?.response?.header;

@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "./auth/auth.module";
 import { WorkspaceModule } from "./workspaces/workspace.module";
 import { TransactionModule } from "./transactions/transaction.module";
@@ -32,6 +33,7 @@ import { NotificationModule } from "./notifications/notification.module";
         logging: c.get<string>("DB_LOGGING", "false") === "true",
       }),
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     WorkspaceModule,
     TransactionModule,

@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThanOrEqual, Not, Repository } from "typeorm";
@@ -14,20 +14,18 @@ import {
 } from "../entities/payment-method.entity";
 import { AuthUser } from "../auth/auth-user.decorator";
 import { WorkspaceAccessService } from "../workspaces/workspace-access.service";
-import { HolidayService } from "../holidays/holiday.service";
+import { KoreanBusinessDayService } from "../holidays/korean-business-day.service";
 
 @UseGuards(AuthGuard("jwt"))
 @Controller("dashboard")
 export class DashboardController {
-  private readonly logger = new Logger(DashboardController.name);
-
   constructor(
     @InjectRepository(Transaction)
     private readonly transactions: Repository<Transaction>,
     @InjectRepository(PaymentMethod)
     private readonly paymentMethods: Repository<PaymentMethod>,
     private readonly access: WorkspaceAccessService,
-    private readonly holidays: HolidayService,
+    private readonly businessDays: KoreanBusinessDayService,
   ) {}
 
   @Get("balance")
@@ -266,7 +264,6 @@ export class DashboardController {
     const [toYear, toMonth] = asOf.split("-").map(Number);
     const fromIndex = fromYear * 12 + fromMonth - 1;
     const toIndex = toYear * 12 + toMonth - 1;
-    const holidayCache = new Map<number, Set<string>>();
     let paid = 0;
 
     for (const card of cards) {
@@ -296,10 +293,8 @@ export class DashboardController {
           paymentMonth,
           card.billingDay,
         );
-        const paymentDate = await this.nextBusinessDay(
-          scheduledPaymentDate,
-          holidayCache,
-        );
+        const paymentDate =
+          await this.businessDays.nextBusinessDay(scheduledPaymentDate);
         if (paymentDate < from || paymentDate > asOf) continue;
 
         const usageIndex = paymentIndex - 1;
@@ -317,45 +312,5 @@ export class DashboardController {
       }
     }
     return paid;
-  }
-
-  private async nextBusinessDay(
-    scheduledDate: string,
-    cache: Map<number, Set<string>>,
-  ) {
-    let date = scheduledDate;
-    while (true) {
-      const year = Number(date.slice(0, 4));
-      let holidays = cache.get(year);
-      if (!holidays) {
-        try {
-          holidays = new Set(
-            (await this.holidays.list(year)).map((holiday) => holiday.date),
-          );
-        } catch (error) {
-          holidays = new Set();
-          this.logger.warn(
-            `${year}년 공휴일 조회 실패, 주말 기준으로 결제일을 계산합니다: ${
-              error instanceof Error ? error.message : "unknown"
-            }`,
-          );
-        }
-        cache.set(year, holidays);
-      }
-      const day = this.dayOfWeek(date);
-      if (day !== 0 && day !== 6 && !holidays.has(date)) return date;
-      date = this.addDays(date, 1);
-    }
-  }
-
-  private dayOfWeek(value: string) {
-    const [year, month, day] = value.split("-").map(Number);
-    return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  }
-
-  private addDays(value: string, amount: number) {
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day + amount));
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
   }
 }

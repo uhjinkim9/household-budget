@@ -96,9 +96,13 @@ export class DiscordWebhookService {
       .andWhere("webhook.isActive = true")
       .andWhere("webhook.deletedAt IS NULL")
       .getMany();
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       webhooks.map((webhook) => this.deliver(webhook, content)),
     );
+    return {
+      configured: webhooks.length > 0,
+      delivered: results.some((result) => result.status === "fulfilled"),
+    };
   }
 
   private async findWithSecret(id: string, workspaceId: string) {
