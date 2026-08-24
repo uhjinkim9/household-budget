@@ -18,9 +18,39 @@ export function monthBounds(date = new Date()) {
   };
 }
 
+export function parseLocalDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function dayBounds(date = new Date()) {
+  const value = toLocalDateString(date);
+  return {
+    from: value,
+    to: value,
+    label: `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`,
+  };
+}
+
+export function weekBounds(date = new Date()) {
+  const fromDate = new Date(date);
+  fromDate.setDate(date.getDate() - date.getDay());
+  const toDate = new Date(fromDate);
+  toDate.setDate(fromDate.getDate() + 6);
+  return {
+    from: toLocalDateString(fromDate),
+    to: toLocalDateString(toDate),
+    label: `${fromDate.getMonth() + 1}월 ${fromDate.getDate()}일 ~ ${toDate.getMonth() + 1}월 ${toDate.getDate()}일`,
+  };
+}
+
 export function yearBounds(date = new Date()) {
   const year = date.getFullYear();
-  return { from: `${year}-01-01`, to: `${year}-12-31` };
+  return {
+    from: `${year}-01-01`,
+    to: `${year}-12-31`,
+    label: `${year}년`,
+  };
 }
 
 /** YYYY-MM-DD → M월 D일 */

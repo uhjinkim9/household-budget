@@ -1,2 +1,96 @@
-'use client';import{KoreanCalendar,type CalendarEvent,type CalendarView,type CellClickPayload}from'calendar-mercury-lab';import type{Transaction,TransactionType}from'@/lib/types';import s from'./BudgetCalendar.module.scss';const colors:Record<TransactionType,string>={BALANCE:'#43836a',FIXED:'#607cb2',VARIABLE:'#e49758'};export function BudgetCalendar({items,view,onViewChange,onCreate}:{items:Transaction[];view:CalendarView;onViewChange:(v:CalendarView)=>void;onCreate:(t:TransactionType,date:string)=>void}){const events:CalendarEvent[]=items.map(x=>({id:x.id,calendarId:x.type,title:`${x.title} · ${Number(x.amount).toLocaleString()}원`,start:x.date,end:x.date,allDay:true,color:colors[x.type],recurrence:x.recurrenceRule?{freq:x.recurrenceRule as 'MONTHLY'}:undefined}));function menu(p:CellClickPayload,close:()=>void){const actions:[TransactionType,string,string][]=[['BALANCE','잔액','현재 자산을 기록해요'],['FIXED','정기 지출','매월 반복되는 지출'],['VARIABLE','일시적 소비','한 번 발생한 소비']];return <div className={s.cellMenu}>{actions.map(([type,label,hint])=><button key={type} onClick={()=>{onCreate(type,p.date);close()}}><i className={s[type.toLowerCase()]}/><span><b>{label}</b><small>{hint}</small></span></button>)}</div>}return <section className={s.panel}><KoreanCalendar view={view} events={events} calendars={[{id:'BALANCE',name:'잔액',color:colors.BALANCE},{id:'FIXED',name:'정기 지출',color:colors.FIXED},{id:'VARIABLE',name:'일시적 소비',color:colors.VARIABLE}]} onViewChange={onViewChange} renderDropdown={menu} fetchHolidays={async(year)=>getKoreanHolidays(year)}/></section>}
-function getKoreanHolidays(year:number){const fixed=[['01-01','신정'],['03-01','삼일절'],['05-05','어린이날'],['06-06','현충일'],['08-15','광복절'],['10-03','개천절'],['10-09','한글날'],['12-25','성탄절']];return Promise.resolve(fixed.map(([d,name])=>({date:`${year}-${d}`,name})))}
+"use client";
+
+import {
+  KoreanCalendar,
+  type CalendarEvent,
+  type CalendarView,
+  type CellClickPayload,
+} from "calendar-mercury-lab";
+import { api } from "@/lib/api";
+import type { Transaction, TransactionType } from "@/lib/types";
+import s from "./BudgetCalendar.module.scss";
+
+const colors: Record<TransactionType, string> = {
+  BALANCE: "#43836a",
+  FIXED: "#607cb2",
+  VARIABLE: "#e49758",
+};
+
+export function BudgetCalendar({
+  items,
+  view,
+  onViewChange,
+  onCreate,
+  onSelect,
+}: {
+  items: Transaction[];
+  view: CalendarView;
+  onViewChange: (view: CalendarView) => void;
+  onCreate: (type: TransactionType, date: string) => void;
+  onSelect: (transaction: Transaction) => void;
+}) {
+  const events: CalendarEvent[] = items.map((item) => ({
+    id: item.id,
+    calendarId: item.type,
+    title: `${item.title} · ${Number(item.amount).toLocaleString()}원`,
+    start: item.date,
+    end: item.date,
+    allDay: true,
+    color: colors[item.type],
+    recurrence: item.recurrenceRule
+      ? { freq: item.recurrenceRule as "MONTHLY" }
+      : undefined,
+  }));
+
+  function menu(payload: CellClickPayload, close: () => void) {
+    const actions: [TransactionType, string, string][] = [
+      ["BALANCE", "잔액", "현재 자산을 기록해요"],
+      ["FIXED", "정기 지출", "매월 반복되는 지출"],
+      ["VARIABLE", "일시적 소비", "한 번 발생한 소비"],
+    ];
+    return (
+      <div className={s.cellMenu}>
+        {actions.map(([type, label, hint]) => (
+          <button
+            key={type}
+            onClick={() => {
+              onCreate(type, payload.date);
+              close();
+            }}
+          >
+            <i className={s[type.toLowerCase()]} />
+            <span>
+              <b>{label}</b>
+              <small>{hint}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  function selectEvent(event: CalendarEvent) {
+    const originalId = event.id.split("_")[0];
+    const transaction = items.find((item) => item.id === originalId);
+    if (transaction) onSelect(transaction);
+  }
+
+  return (
+    <section className={s.panel}>
+      <KoreanCalendar
+        view={view}
+        events={events}
+        calendars={[
+          { id: "BALANCE", name: "잔액", color: colors.BALANCE },
+          { id: "FIXED", name: "정기 지출", color: colors.FIXED },
+          { id: "VARIABLE", name: "일시적 소비", color: colors.VARIABLE },
+        ]}
+        onViewChange={onViewChange}
+        onEventClick={selectEvent}
+        renderDropdown={menu}
+        fetchHolidays={api.holidays}
+      />
+    </section>
+  );
+}
+

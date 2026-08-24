@@ -1,0 +1,143 @@
+name: CI - Build, Push, Update GitOps
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: household-budget-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/household-budget
+  GITOPS_REPOSITORY: uhjinkim9/helm-chart
+  CHART_PATH: charts/namespace-household-budget/household-budget
+
+jobs:
+  build-and-push:
+    name: Build & Push application
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=${{ github.ref_name }}-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
+          cache-from: type=gha,scope=application
+          cache-to: type=gha,scope=application,mode=max
+
+  update-gitops:
+    name: Update Helm image tag
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPOSITORY }}
+          ref: main
+          token: ${{ secrets.GITOPS_TOKEN }}
+
+      - name: Update application tag
+        env:
+          IMAGE_TAG: main-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          IMAGE_TAG="${IMAGE_TAG:0:12}"
+          VALUES_FILE="${CHART_PATH}/values.yaml"
+
+          test -f "${VALUES_FILE}"
+          yq -i '.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
+          test "$(yq '.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+
+      - name: Commit and push Helm values
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          VALUES_FILE="${CHART_PATH}/values.yaml"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${VALUES_FILE}"
+
+          if git diff --cached --quiet; then
+            echo "이미 최신 태그입니다."
+            exit 0
+          fi
+
+          git commit -m "ci: deploy household-budget ${SOURCE_SHA:0:7} [skip ci]"
+          git push origin main
+
+  notify:
+    name: Discord notification
+    if: always() && github.event_name != 'pull_request'
+    needs: [build-and-push, update-gitops]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify success
+        if: needs.build-and-push.result == 'success' && needs.update-gitops.result != 'failure'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: success
+          title: "✅ 빌드 성공: household-budget"
+          description: "프론트/API 통합 이미지 배포가 시작됩니다."
+          color: 0x57F287
+
+      - name: Notify failure
+        if: needs.build-and-push.result == 'failure' || needs.update-gitops.result == 'failure'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: failure
+          title: "❌ 빌드 실패: household-budget"
+          description: "로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          color: 0xED4245
+

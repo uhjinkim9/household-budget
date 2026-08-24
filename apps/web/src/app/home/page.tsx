@@ -10,7 +10,7 @@ import { CreateMenu } from "@/components/dashboard/CreateMenu";
 import { TransactionModal } from "@/components/dashboard/TransactionModal";
 import { api } from "@/lib/api";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { toLocalDateString, yearBounds } from "@/lib/dateUtils";
+import { monthBounds, toLocalDateString, yearBounds } from "@/lib/date-parser";
 import s from "./page.module.scss";
 export default function Dashboard() {
   const range = yearBounds(),
@@ -24,6 +24,8 @@ export default function Dashboard() {
     queryFn: api.getOrCreateWorkspace,
   });
   const workspaceId = workspace?.id ?? "";
+  const balanceAsOf = toLocalDateString();
+  const monthEnd = monthBounds().to;
   const { data: items = [] } = useQuery({
     queryKey: ["transactions", workspaceId, range],
     queryFn: () => api.transactions(workspaceId, range.from, range.to),
@@ -34,14 +36,23 @@ export default function Dashboard() {
     queryFn: () => api.paymentMethods(workspaceId),
     enabled: Boolean(workspaceId),
   });
+  const { data: balanceData } = useQuery({
+    queryKey: ["dashboard-balance", workspaceId, balanceAsOf],
+    queryFn: () => api.dashboardBalance(workspaceId, balanceAsOf),
+    enabled: Boolean(workspaceId),
+  });
+  const { data: projectedBalanceData } = useQuery({
+    queryKey: ["dashboard-balance", workspaceId, monthEnd],
+    queryFn: () => api.dashboardBalance(workspaceId, monthEnd),
+    enabled: Boolean(workspaceId),
+  });
   const [view, setView] = useState<CalendarView>("month"),
     [type, setType] = useState<TransactionType | null>(null),
-    [date, setDate] = useState(() => toLocalDateString());
+    [date, setDate] = useState(() => toLocalDateString()),
+    [selected, setSelected] = useState<Transaction | null>(null);
   const summary = useMemo(
     () => ({
-      balance: items
-        .filter((x) => x.type === "BALANCE")
-        .reduce((a, b) => a + Number(b.amount), 0),
+      balance: balanceData?.balance ?? 0,
       fixed: items
         .filter((x) => x.type === "FIXED")
         .reduce((a, b) => a + Number(b.amount), 0),
@@ -49,20 +60,38 @@ export default function Dashboard() {
         .filter((x) => x.type === "VARIABLE")
         .reduce((a, b) => a + Number(b.amount), 0),
     }),
-    [items],
+    [items, balanceData],
   );
   function start(t: TransactionType, d = date) {
+    setSelected(null);
     setType(t);
     setDate(d);
   }
-  async function add(v: Omit<Transaction, "id" | "workspaceId">) {
+  function closeModal() {
+    setType(null);
+    setSelected(null);
+  }
+  async function save(v: Omit<Transaction, "id" | "workspaceId">) {
     if (!workspaceId) return;
-    await api.createTransaction({
+    const body = {
       ...v,
       workspaceId,
-      recurrenceRule: v.type === "FIXED" ? "MONTHLY" : undefined,
-    });
+      recurrenceRule:
+        v.type === "FIXED" ||
+        (v.type === "BALANCE" && v.balanceMode === "MONTHLY_RESET")
+          ? "MONTHLY"
+          : undefined,
+    };
+    if (selected) await api.updateTransaction(selected.id, body);
+    else await api.createTransaction(body);
     await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
+    await qc.invalidateQueries({ queryKey: ["dashboard-balance", workspaceId] });
+  }
+  async function remove() {
+    if (!workspaceId || !selected) return;
+    await api.deleteTransaction(selected.id, workspaceId);
+    await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
+    await qc.invalidateQueries({ queryKey: ["dashboard-balance", workspaceId] });
   }
   if (isLoading)
     return <main className={s.state}>가계를 준비하고 있어요…</main>;
@@ -87,6 +116,7 @@ export default function Dashboard() {
         </header>
         <SummaryCards
           balance={summary.balance}
+          projectedBalance={projectedBalanceData?.balance ?? summary.balance}
           spent={summary.fixed + summary.variable}
           fixed={summary.fixed}
           variable={summary.variable}
@@ -104,6 +134,10 @@ export default function Dashboard() {
             view={view}
             onViewChange={setView}
             onCreate={start}
+            onSelect={(transaction) => {
+              setSelected(transaction);
+              setType(null);
+            }}
           />
           <aside>
             <CardPerformance
@@ -118,11 +152,14 @@ export default function Dashboard() {
         </div>
       </main>
       <TransactionModal
+        key={selected?.id ?? `${type}-${date}`}
         type={type}
         date={date}
+        transaction={selected}
         methods={methods}
-        onClose={() => setType(null)}
-        onSubmit={add}
+        onClose={closeModal}
+        onSubmit={save}
+        onDelete={selected ? remove : undefined}
       />
     </div>
   );
