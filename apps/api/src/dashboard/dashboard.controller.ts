@@ -189,8 +189,13 @@ export class DashboardController {
         approvalStatus: Not(ApprovalStatus.CANCELLED),
         type: Not(TransactionType.BALANCE),
       },
+      relations: { foodItems: true },
     });
     const totals = new Map<string, number>();
+    const foodItemTotals = new Map<
+      string,
+      { name: string; quantity: number; purchaseCount: number; amount: number }
+    >();
     for (const row of rows) {
       const included =
         row.recurrenceRule === "MONTHLY"
@@ -201,6 +206,22 @@ export class DashboardController {
         row.category,
         (totals.get(row.category) ?? 0) + Number(row.amount),
       );
+      for (const foodItem of row.foodItems ?? []) {
+        const name = foodItem.name.trim();
+        if (!name) continue;
+        const key = name.toLocaleLowerCase("ko-KR");
+        const current = foodItemTotals.get(key) ?? {
+          name,
+          quantity: 0,
+          purchaseCount: 0,
+          amount: 0,
+        };
+        current.quantity += Number(foodItem.quantity);
+        current.purchaseCount += 1;
+        current.amount +=
+          Number(foodItem.unitPrice) * Number(foodItem.quantity);
+        foodItemTotals.set(key, current);
+      }
     }
     const categories = [...totals.entries()]
       .map(([category, amount]) => ({ category, amount }))
@@ -212,6 +233,9 @@ export class DashboardController {
         ...item,
         percentage: total ? (item.amount / total) * 100 : 0,
       })),
+      foodItems: [...foodItemTotals.values()].sort(
+        (a, b) => b.quantity - a.quantity || b.amount - a.amount,
+      ),
     };
   }
 

@@ -15,6 +15,9 @@
   box-shadow: $shadow;
   padding: 24px;
 }
+.wide {
+  width: min(860px, 100%);
+}
 .modal header {
   display: flex;
   align-items: center;
@@ -30,4 +33,28 @@
   background: none;
   font-size: 28px;
   color: $muted;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal {
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px 32px;
+    max-height: 92dvh;
+    overflow-y: auto;
+    animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
 }

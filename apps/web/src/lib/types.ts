@@ -10,6 +10,13 @@ export interface DailyNote {
 
 export type TransactionType = "FIXED" | "VARIABLE" | "BALANCE";
 export type BalanceMode = "CUMULATIVE" | "MONTHLY_RESET";
+export interface TransactionFoodItem {
+  id?: string;
+  name: string;
+  unitPrice: number;
+  quantity: number;
+  expirationDate?: string | null;
+}
 export interface Transaction {
   id: string;
   workspaceId: string;
@@ -22,6 +29,7 @@ export interface Transaction {
   date: string;
   recurrenceRule?: string;
   balanceMode?: BalanceMode | null;
+  foodItems?: TransactionFoodItem[];
 }
 export type PaymentMethodType =
   "CREDIT_CARD" | "CHECK_CARD" | "BANK_ACCOUNT" | "CASH";

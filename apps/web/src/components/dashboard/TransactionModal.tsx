@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { PaymentMethod, Transaction, TransactionType } from "@/lib/types";
+import type {
+  PaymentMethod,
+  Transaction,
+  TransactionFoodItem,
+  TransactionType,
+} from "@/lib/types";
 import type { WorkspaceCategory } from "@/lib/workspace-settings-api";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -29,6 +34,7 @@ export interface TransactionFormValue {
   date: string;
   paymentMethodId?: string;
   balanceMode?: "CUMULATIVE" | "MONTHLY_RESET";
+  foodItems?: TransactionFoodItem[];
 }
 
 export function TransactionModal({
@@ -62,6 +68,13 @@ export function TransactionModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copying, setCopying] = useState(initialCopyMode);
   const [error, setError] = useState("");
+  const [category, setCategory] = useState(
+    transaction?.category ??
+      (activeType === "BALANCE" ? "잔액" : (categories[0]?.name ?? "")),
+  );
+  const [foodItems, setFoodItems] = useState<TransactionFoodItem[]>(() =>
+    (transaction?.foodItems ?? []).map((item) => ({ ...item })),
+  );
   const editing = Boolean(transaction) && !copying;
   const categoryOptions =
     activeType === "BALANCE"
@@ -99,6 +112,17 @@ export function TransactionModal({
                 ? "MONTHLY_RESET"
                 : "CUMULATIVE"
               : undefined,
+          foodItems:
+            activeType !== "BALANCE" && category === "식비"
+              ? foodItems
+                  .filter((item) => item.name.trim())
+                  .map((item) => ({
+                    name: item.name.trim(),
+                    unitPrice: Number(item.unitPrice),
+                    quantity: Math.trunc(Number(item.quantity)),
+                    expirationDate: item.expirationDate || undefined,
+                  }))
+              : [],
         },
         { copy: copying },
       );
@@ -136,6 +160,7 @@ export function TransactionModal({
         open
         title={`${labels[activeType]} ${copying ? "복사 등록" : editing ? "상세/수정" : "등록"}`}
         onClose={onClose}
+        size={category === "식비" ? "wide" : "default"}
       >
         <form className={s.form} onSubmit={submit}>
           <FormField label="내역 이름">
@@ -176,10 +201,8 @@ export function TransactionModal({
             <Select
               name="category"
               required
-              defaultValue={
-                transaction?.category ??
-                (activeType === "BALANCE" ? "잔액" : categoryOptions[0])
-              }
+              value={category || categoryOptions[0] || ""}
+              onChange={(event) => setCategory(event.target.value)}
               disabled={readOnly}
             >
               {categoryOptions.length === 0 && (
@@ -192,6 +215,106 @@ export function TransactionModal({
               ))}
             </Select>
           </FormField>
+
+          {activeType !== "BALANCE" && category === "식비" && (
+            <section className={s.foodItems}>
+              <div className={s.foodItemsHeader}>
+                <div>
+                  <b>식재료 정보</b>
+                  <small>구매한 식재료와 유통기한을 기록해보세요.</small>
+                </div>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() =>
+                      setFoodItems((current) => [
+                        ...current,
+                        {
+                          name: "",
+                          unitPrice: 0,
+                          quantity: 1,
+                          expirationDate: "",
+                        },
+                      ])
+                    }
+                  >
+                    + 식재료 정보 추가
+                  </Button>
+                )}
+              </div>
+              {foodItems.map((item, index) => (
+                <div className={s.foodItemRow} key={item.id ?? index}>
+                  <Input
+                    value={item.name}
+                    onChange={(event) =>
+                      updateFoodItem(index, { name: event.target.value })
+                    }
+                    placeholder="식재료명"
+                    aria-label="식재료명"
+                    required
+                    disabled={readOnly}
+                  />
+                  <MoneyInput
+                    name={`foodItemUnitPrice-${index}`}
+                    value={Number(item.unitPrice)}
+                    onValueChange={(value) =>
+                      updateFoodItem(index, { unitPrice: value ?? 0 })
+                    }
+                    placeholder="단가"
+                    aria-label="단가"
+                    required
+                    disabled={readOnly}
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateFoodItem(index, {
+                        quantity: Math.trunc(Number(event.target.value)),
+                      })
+                    }
+                    placeholder="수량"
+                    aria-label="수량"
+                    required
+                    disabled={readOnly}
+                  />
+                  <Input
+                    type="date"
+                    value={item.expirationDate ?? ""}
+                    onChange={(event) =>
+                      updateFoodItem(index, {
+                        expirationDate: event.target.value,
+                      })
+                    }
+                    aria-label="유통기한"
+                    disabled={readOnly}
+                  />
+                  {!readOnly && (
+                    <button
+                      className={s.removeFoodItem}
+                      type="button"
+                      aria-label={`${item.name || "식재료"} 삭제`}
+                      onClick={() =>
+                        setFoodItems((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              {foodItems.length === 0 && (
+                <p className={s.emptyFoodItems}>
+                  추가 버튼을 눌러 식재료를 입력할 수 있어요.
+                </p>
+              )}
+            </section>
+          )}
 
           {activeType !== "BALANCE" && (
             <FormField label="결제 수단">
@@ -315,4 +438,12 @@ export function TransactionModal({
       />
     </>
   );
+
+  function updateFoodItem(index: number, patch: Partial<TransactionFoodItem>) {
+    setFoodItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item,
+      ),
+    );
+  }
 }

@@ -11,15 +11,21 @@ import {
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { BalanceMode, TransactionType } from "../entities/transaction.entity";
 import { TransactionService } from "./transaction.service";
 import { AuthUser } from "../auth/auth-user.decorator";
@@ -35,6 +41,25 @@ class TransactionRangeDto {
 
   @IsDateString({ strict: true })
   to!: string;
+}
+
+class FoodItemDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  name!: string;
+
+  @IsNumber()
+  @Min(0)
+  unitPrice!: number;
+
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+
+  @IsOptional()
+  @IsDateString({ strict: true })
+  expirationDate?: string;
 }
 
 class CreateDto {
@@ -76,6 +101,12 @@ class CreateDto {
   @IsOptional()
   @IsBoolean()
   isPerformanceExcluded?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FoodItemDto)
+  foodItems?: FoodItemDto[];
 }
 
 @UseGuards(AuthGuard("jwt"))

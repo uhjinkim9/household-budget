@@ -57,6 +57,7 @@ export default function ReportsPage() {
     color: palette[index % palette.length],
   }));
   const top = categories[0];
+  const popularFoodItems = data?.foodItems ?? [];
 
   function moveMonth(offset: number) {
     const date = parseLocalDate(`${month}-01`);
@@ -199,6 +200,39 @@ export default function ReportsPage() {
                 </article>
               ))}
             </div>
+          </section>
+        )}
+
+        {!workspaceLoading && !isLoading && !isError && (
+          <section className={s.foodRanking}>
+            <div className={s.foodRankingHeader}>
+              <div>
+                <p>식재료 분석</p>
+                <h2>많이 구매한 식재료</h2>
+              </div>
+              <span>
+                {range.label} · 총 {popularFoodItems.length}종
+              </span>
+            </div>
+            {popularFoodItems.length === 0 ? (
+              <div className={s.foodRankingEmpty}>
+                식비 지출에 식재료를 추가하면 구매 순위를 확인할 수 있어요.
+              </div>
+            ) : (
+              <div className={s.foodRankingList}>
+                {popularFoodItems.map((item, index) => (
+                  <article key={item.name}>
+                    <strong>{index + 1}</strong>
+                    <div>
+                      <b>{item.name}</b>
+                      <small>{item.purchaseCount}회 구매</small>
+                    </div>
+                    <span>총 {item.quantity.toLocaleString("ko-KR")}개</span>
+                    <em>{formatMoney(item.amount)}</em>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         )}
       </main>

@@ -123,6 +123,12 @@ export const api = {
         amount: number;
         percentage: number;
       }>;
+      foodItems: Array<{
+        name: string;
+        quantity: number;
+        purchaseCount: number;
+        amount: number;
+      }>;
     }>(
       `/dashboard/category-report?workspaceId=${workspaceId}&from=${from}&to=${to}`,
     ),

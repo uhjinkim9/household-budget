@@ -6,11 +6,13 @@ export function Modal({
   title,
   onClose,
   children,
+  size = "default",
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
+  size?: "default" | "wide";
 }) {
   useEffect(() => {
     const f = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -23,7 +25,11 @@ export function Modal({
       className={s.backdrop}
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <section className={s.modal} role="dialog" aria-modal="true">
+      <section
+        className={`${s.modal} ${size === "wide" ? s.wide : ""}`}
+        role="dialog"
+        aria-modal="true"
+      >
         <header>
           <h2>{title}</h2>
           <button onClick={onClose} aria-label="닫기">

@@ -1,5 +1,12 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { TimestampEntity } from "./base.entity";
+import { TransactionFoodItem } from "./transaction-food-item.entity";
 
 export enum TransactionType {
   FIXED = "FIXED",
@@ -118,4 +125,7 @@ export class Transaction extends TimestampEntity {
     comment: "외부 연동에서 수신한 원본 거래 데이터",
   })
   rawData!: Record<string, unknown> | null;
+
+  @OneToMany(() => TransactionFoodItem, (foodItem) => foodItem.transaction)
+  foodItems!: TransactionFoodItem[];
 }

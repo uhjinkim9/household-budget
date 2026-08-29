@@ -27,6 +27,51 @@
   color: $green;
   font-size: 13px;
 }
+.foodItems {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  background: #fafcfb;
+}
+.foodItemsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.foodItemsHeader > div {
+  display: grid;
+  gap: 3px;
+}
+.foodItemsHeader small,
+.emptyFoodItems {
+  color: $muted;
+  font-size: 12px;
+}
+.foodItemRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.4fr) minmax(100px, 1fr) 78px 145px 32px;
+  gap: 8px;
+  align-items: center;
+}
+.removeFoodItem {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: $red;
+  font-size: 22px;
+  cursor: pointer;
+}
+.removeFoodItem:hover {
+  background: #fff0ef;
+}
+.emptyFoodItems {
+  margin: 2px 0 0;
+}
 .error {
   margin: 0;
   color: $red;
@@ -52,5 +97,16 @@
   }
   .leftActions {
     width: 100%;
+  }
+  .foodItemsHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .foodItemRow {
+    grid-template-columns: 1fr 1fr;
+  }
+  .removeFoodItem {
+    grid-column: 2;
+    justify-self: end;
   }
 }

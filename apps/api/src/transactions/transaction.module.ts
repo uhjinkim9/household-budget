@@ -5,9 +5,10 @@ import { TransactionService } from "./transaction.service";
 import { TransactionController } from "./transaction.controller";
 import { WorkspaceModule } from "../workspaces/workspace.module";
 import { NotificationModule } from "../notifications/notification.module";
+import { TransactionFoodItem } from "../entities/transaction-food-item.entity";
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction]),
+    TypeOrmModule.forFeature([Transaction, TransactionFoodItem]),
     WorkspaceModule,
     NotificationModule,
   ],
