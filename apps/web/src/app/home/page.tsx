@@ -67,6 +67,7 @@ export default function Dashboard() {
     [type, setType] = useState<TransactionType | null>(null),
     [date, setDate] = useState(() => toLocalDateString()),
     [selected, setSelected] = useState<Transaction | null>(null),
+    [copyMode, setCopyMode] = useState(false),
     [noteDate, setNoteDate] = useState<string | null>(null),
     [selectedNote, setSelectedNote] = useState<DailyNote | null>(null);
   const summary = useMemo(
@@ -85,20 +86,26 @@ export default function Dashboard() {
     setNoteDate(null);
     setSelectedNote(null);
     setSelected(null);
+    setCopyMode(false);
     setType(t);
     setDate(d);
   }
   function startNote(nextDate: string, note: DailyNote | null = null) {
     setType(null);
     setSelected(null);
+    setCopyMode(false);
     setNoteDate(nextDate);
     setSelectedNote(note);
   }
   function closeModal() {
     setType(null);
     setSelected(null);
+    setCopyMode(false);
   }
-  async function save(v: Omit<Transaction, "id" | "workspaceId">) {
+  async function save(
+    v: Omit<Transaction, "id" | "workspaceId">,
+    options?: { copy: boolean },
+  ) {
     if (!workspaceId) return;
     const body = {
       ...v,
@@ -109,7 +116,8 @@ export default function Dashboard() {
           ? "MONTHLY"
           : undefined,
     };
-    if (selected) await api.updateTransaction(selected.id, body);
+    if (selected && !options?.copy)
+      await api.updateTransaction(selected.id, body);
     else await api.createTransaction(body);
     await qc.invalidateQueries({ queryKey: ["transactions", workspaceId] });
     await qc.invalidateQueries({
@@ -192,7 +200,16 @@ export default function Dashboard() {
             onCreate={start}
             onSelect={(transaction) => {
               setSelected(transaction);
+              setCopyMode(false);
               setType(null);
+            }}
+            onDuplicate={(transaction, duplicateDate) => {
+              setNoteDate(null);
+              setSelectedNote(null);
+              setType(null);
+              setDate(duplicateDate);
+              setSelected({ ...transaction, date: duplicateDate });
+              setCopyMode(true);
             }}
             notes={notes}
             onCreateNote={(nextDate) => startNote(nextDate)}
@@ -207,7 +224,7 @@ export default function Dashboard() {
         </div>
       </main>
       <TransactionModal
-        key={selected?.id ?? `${type}-${date}`}
+        key={`${selected?.id ?? `${type}-${date}`}-${copyMode ? "copy" : "edit"}`}
         type={type}
         date={date}
         transaction={selected}
@@ -216,6 +233,7 @@ export default function Dashboard() {
         onClose={closeModal}
         onSubmit={save}
         onDelete={selected ? remove : undefined}
+        initialCopyMode={copyMode}
       />
       <DailyNoteModal
         key={selectedNote?.id ?? noteDate ?? "note-closed"}

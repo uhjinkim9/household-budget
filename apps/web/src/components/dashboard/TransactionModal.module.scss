@@ -1,1 +1,56 @@
-@use '../../styles/tokens' as *;.form{display:grid;gap:17px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.balanceOption{padding:13px;border:1px solid $line;border-radius:$radius-sm;background:#fafcfb}.balanceOption small{margin-top:3px;color:$muted;font-size:12px}.notice{margin:0;padding:12px;border-radius:$radius-sm;background:$mint;color:$green;font-size:13px}.error{margin:0;color:$red;font-size:13px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:5px}.delete{margin-right:auto}@media(max-width:500px){.row{grid-template-columns:1fr}}
+@use "../../styles/tokens" as *;
+.form {
+  display: grid;
+  gap: 17px;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.balanceOption {
+  padding: 13px;
+  border: 1px solid $line;
+  border-radius: $radius-sm;
+  background: #fafcfb;
+}
+.balanceOption small {
+  margin-top: 3px;
+  color: $muted;
+  font-size: 12px;
+}
+.notice {
+  margin: 0;
+  padding: 12px;
+  border-radius: $radius-sm;
+  background: $mint;
+  color: $green;
+  font-size: 13px;
+}
+.error {
+  margin: 0;
+  color: $red;
+  font-size: 13px;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 5px;
+}
+.leftActions {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+@media (max-width: 500px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+  .leftActions {
+    width: 100%;
+  }
+}

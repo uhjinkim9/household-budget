@@ -41,6 +41,7 @@ export function TransactionModal({
   onSubmit,
   onDelete,
   readOnly = false,
+  initialCopyMode = false,
 }: {
   type: TransactionType | null;
   date: string;
@@ -48,15 +49,20 @@ export function TransactionModal({
   methods: PaymentMethod[];
   categories: WorkspaceCategory[];
   onClose: () => void;
-  onSubmit: (value: TransactionFormValue) => Promise<void>;
+  onSubmit: (
+    value: TransactionFormValue,
+    options?: { copy: boolean },
+  ) => Promise<void>;
   onDelete?: () => Promise<void>;
   readOnly?: boolean;
+  initialCopyMode?: boolean;
 }) {
   const activeType = transaction?.type ?? type;
-  const editing = Boolean(transaction);
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [copying, setCopying] = useState(initialCopyMode);
   const [error, setError] = useState("");
+  const editing = Boolean(transaction) && !copying;
   const categoryOptions =
     activeType === "BALANCE"
       ? ["잔액"]
@@ -77,21 +83,25 @@ export function TransactionModal({
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      await onSubmit({
-        type: activeType!,
-        title: String(form.get("title")),
-        amount: Number(form.get("amount")),
-        category: String(form.get("category")),
-        memo: String(form.get("memo") || "").trim() || undefined,
-        date: String(form.get("date")),
-        paymentMethodId: String(form.get("paymentMethodId") || "") || undefined,
-        balanceMode:
-          activeType === "BALANCE"
-            ? form.get("monthlyReset")
-              ? "MONTHLY_RESET"
-              : "CUMULATIVE"
-            : undefined,
-      });
+      await onSubmit(
+        {
+          type: activeType!,
+          title: String(form.get("title")),
+          amount: Number(form.get("amount")),
+          category: String(form.get("category")),
+          memo: String(form.get("memo") || "").trim() || undefined,
+          date: String(form.get("date")),
+          paymentMethodId:
+            String(form.get("paymentMethodId") || "") || undefined,
+          balanceMode:
+            activeType === "BALANCE"
+              ? form.get("monthlyReset")
+                ? "MONTHLY_RESET"
+                : "CUMULATIVE"
+              : undefined,
+        },
+        { copy: copying },
+      );
       onClose();
     } catch (caught) {
       setError(
@@ -124,7 +134,7 @@ export function TransactionModal({
     <>
       <Modal
         open
-        title={`${labels[activeType]} ${editing ? "상세/수정" : "등록"}`}
+        title={`${labels[activeType]} ${copying ? "복사 등록" : editing ? "상세/수정" : "등록"}`}
         onClose={onClose}
       >
         <form className={s.form} onSubmit={submit}>
@@ -218,7 +228,9 @@ export function TransactionModal({
 
           {activeType === "FIXED" && (
             <p className={s.notice}>
-              수정하거나 삭제하면 매월 표시되는 정기 지출 전체에 적용됩니다.
+              {copying
+                ? "날짜를 확인한 뒤 새로운 정기 지출로 등록해주세요."
+                : "수정하거나 삭제하면 매월 표시되는 정기 지출 전체에 적용됩니다."}
             </p>
           )}
 
@@ -241,16 +253,32 @@ export function TransactionModal({
           {error && <p className={s.error}>{error}</p>}
 
           <div className={s.actions}>
-            {!readOnly && editing && onDelete && (
-              <Button
-                className={s.delete}
-                type="button"
-                variant="danger"
-                onClick={() => setConfirmDelete(true)}
-                disabled={loading}
-              >
-                삭제
-              </Button>
+            {!readOnly && editing && (
+              <div className={s.leftActions}>
+                {onDelete && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={loading}
+                  >
+                    삭제
+                  </Button>
+                )}
+                {activeType !== "BALANCE" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setCopying(true);
+                      setError("");
+                    }}
+                    disabled={loading}
+                  >
+                    복사
+                  </Button>
+                )}
+              </div>
             )}
             <Button
               type="button"
@@ -262,7 +290,13 @@ export function TransactionModal({
             </Button>
             {!readOnly && (
               <Button disabled={loading}>
-                {loading ? "처리 중…" : editing ? "수정하기" : "등록하기"}
+                {loading
+                  ? "처리 중…"
+                  : copying
+                    ? "복사 등록하기"
+                    : editing
+                      ? "수정하기"
+                      : "등록하기"}
               </Button>
             )}
           </div>

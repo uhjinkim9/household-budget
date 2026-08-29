@@ -122,9 +122,12 @@ export default function TransactionsPage() {
     router.replace(`/transactions?${params.toString()}`);
   }
 
-  async function save(value: Omit<Transaction, "id" | "workspaceId">) {
+  async function save(
+    value: Omit<Transaction, "id" | "workspaceId">,
+    options?: { copy: boolean },
+  ) {
     if (!selected || !workspaceId) return;
-    await api.updateTransaction(selected.id, {
+    const body = {
       ...value,
       workspaceId,
       recurrenceRule:
@@ -132,12 +135,17 @@ export default function TransactionsPage() {
         (value.type === "BALANCE" && value.balanceMode === "MONTHLY_RESET")
           ? "MONTHLY"
           : undefined,
-    });
+    };
+    if (options?.copy) await api.createTransaction(body);
+    else await api.updateTransaction(selected.id, body);
     await queryClient.invalidateQueries({
       queryKey: ["transactions", workspaceId],
     });
     await queryClient.invalidateQueries({
       queryKey: ["dashboard-balance", workspaceId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["next-card-payment-balance", workspaceId],
     });
   }
 

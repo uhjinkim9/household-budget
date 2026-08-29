@@ -5,6 +5,7 @@ import {
   type CalendarEvent,
   type CalendarView,
   type CellClickPayload,
+  type DropdownActionPayload,
 } from "calendar-mercury-lab";
 import { api } from "@/lib/api";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
@@ -22,6 +23,7 @@ export function BudgetCalendar({
   onViewChange,
   onCreate,
   onSelect,
+  onDuplicate,
   notes,
   onCreateNote,
   onSelectNote,
@@ -31,6 +33,7 @@ export function BudgetCalendar({
   onViewChange: (view: CalendarView) => void;
   onCreate: (type: TransactionType, date: string) => void;
   onSelect: (transaction: Transaction) => void;
+  onDuplicate: (transaction: Transaction, date: string) => void;
   notes: DailyNote[];
   onCreateNote: (date: string) => void;
   onSelectNote: (note: DailyNote) => void;
@@ -58,6 +61,17 @@ export function BudgetCalendar({
   }));
   const events = [...noteEvents, ...transactionEvents];
 
+  function findTransaction(event: CalendarEvent) {
+    const originalId = event.id.split("_")[0];
+    return items.find((item) => item.id === originalId);
+  }
+
+  function dropdownAction(payload: DropdownActionPayload) {
+    if (payload.action !== "duplicate" || !payload.event) return;
+    const transaction = findTransaction(payload.event);
+    if (transaction) onDuplicate(transaction, payload.date);
+  }
+
   function menu(payload: CellClickPayload, close: () => void) {
     const actions: [TransactionType, string, string][] = [
       ["BALANCE", "잔액", "현재 자산을 기록해요"],
@@ -81,6 +95,27 @@ export function BudgetCalendar({
             </span>
           </button>
         ))}
+        {payload.events
+          .filter((event) => event.calendarId !== "NOTE")
+          .map((event) => (
+            <button
+              key={`duplicate:${event.id}`}
+              onClick={() => {
+                dropdownAction({
+                  action: "duplicate",
+                  date: payload.date,
+                  event,
+                });
+                close();
+              }}
+            >
+              <i className={s.duplicate} />
+              <span>
+                <b>{event.title} 복제</b>
+                <small>같은 내용으로 새 지출 등록</small>
+              </span>
+            </button>
+          ))}
         <button
           onClick={() => {
             const existing = notes.find((note) => note.date === payload.date);
@@ -105,8 +140,7 @@ export function BudgetCalendar({
       if (note) onSelectNote(note);
       return;
     }
-    const originalId = event.id.split("_")[0];
-    const transaction = items.find((item) => item.id === originalId);
+    const transaction = findTransaction(event);
     if (transaction) onSelect(transaction);
   }
 
@@ -123,6 +157,7 @@ export function BudgetCalendar({
         ]}
         onViewChange={onViewChange}
         onEventClick={selectEvent}
+        onDropdownAction={dropdownAction}
         renderDropdown={menu}
         fetchHolidays={api.holidays}
       />
