@@ -6,9 +6,10 @@ import { TransactionController } from "./transaction.controller";
 import { WorkspaceModule } from "../workspaces/workspace.module";
 import { NotificationModule } from "../notifications/notification.module";
 import { TransactionFoodItem } from "../entities/transaction-food-item.entity";
+import { PaymentMethod } from "../entities/payment-method.entity";
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction, TransactionFoodItem]),
+    TypeOrmModule.forFeature([Transaction, TransactionFoodItem, PaymentMethod]),
     WorkspaceModule,
     NotificationModule,
   ],

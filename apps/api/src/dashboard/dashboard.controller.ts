@@ -315,6 +315,17 @@ export class DashboardController {
           row.paymentMethodId === card.id,
       );
       if (!cardRows.length) continue;
+      const prepayments = rows
+        .filter(
+          (row) =>
+            row.type === TransactionType.BALANCE &&
+            row.paymentMethodId === card.id &&
+            Number(row.amount) < 0 &&
+            row.date >= from,
+        )
+        .sort((left, right) => left.date.localeCompare(right.date));
+      let prepaymentIndex = 0;
+      let prepaymentCredit = 0;
       const [firstYear, firstMonth] = cardRows
         .map((row) => row.date)
         .sort()[0]
@@ -343,13 +354,25 @@ export class DashboardController {
         const usageMonth = (usageIndex % 12) + 1;
         const usageFrom = this.dateWithClampedDay(usageYear, usageMonth, 1);
         const usageTo = this.dateWithClampedDay(usageYear, usageMonth, 31);
-        paid += cardRows.reduce((sum, row) => {
+        while (
+          prepaymentIndex < prepayments.length &&
+          prepayments[prepaymentIndex].date <= paymentDate
+        ) {
+          prepaymentCredit += Math.abs(
+            Number(prepayments[prepaymentIndex].amount),
+          );
+          prepaymentIndex += 1;
+        }
+        const scheduledAmount = cardRows.reduce((sum, row) => {
           const included =
             row.recurrenceRule === "MONTHLY"
               ? this.hasMonthlyOccurrence(row.date, usageFrom, usageTo)
               : row.date >= usageFrom && row.date <= usageTo;
           return included ? sum + Number(row.amount) : sum;
         }, 0);
+        const prepaidAmount = Math.min(scheduledAmount, prepaymentCredit);
+        paid += scheduledAmount - prepaidAmount;
+        prepaymentCredit -= prepaidAmount;
       }
     }
     return paid;

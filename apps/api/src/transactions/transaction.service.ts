@@ -1,15 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, DataSource, Not, Repository } from "typeorm";
 import { Transaction, TransactionType } from "../entities/transaction.entity";
 import { TransactionFoodItem } from "../entities/transaction-food-item.entity";
 import { NotificationPublisher } from "../notifications/notification-publisher";
+import { PaymentMethod, PaymentMethodType } from "../entities/payment-method.entity";
 
 @Injectable()
 export class TransactionService {
   constructor(
     @InjectRepository(Transaction)
     private readonly transactions: Repository<Transaction>,
+    @InjectRepository(PaymentMethod)
+    private readonly paymentMethods: Repository<PaymentMethod>,
     private readonly dataSource: DataSource,
     private readonly notifications: NotificationPublisher,
   ) {}
@@ -27,6 +30,7 @@ export class TransactionService {
   }
 
   async create(data: TransactionWriteData) {
+    await this.validateBalanceAdjustment(data);
     const { foodItems = [], ...transactionData } = data;
     const transaction = await this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(
@@ -56,6 +60,7 @@ export class TransactionService {
   }
 
   async update(id: string, workspaceId: string, data: TransactionWriteData) {
+    await this.validateBalanceAdjustment(data);
     const { foodItems = [], ...transactionData } = data;
     return this.dataSource.transaction(async (manager) => {
       const item = await manager.findOneBy(Transaction, { id, workspaceId });
@@ -88,6 +93,27 @@ export class TransactionService {
     if (!item) throw new NotFoundException();
     await this.transactions.remove(item);
     return { id };
+  }
+
+  private async validateBalanceAdjustment(data: TransactionWriteData) {
+    const amount = Number(data.amount);
+    if (data.type !== TransactionType.BALANCE && amount < 0) {
+      throw new BadRequestException("지출 금액에는 음수를 입력할 수 없습니다.");
+    }
+    if (
+      data.type !== TransactionType.BALANCE ||
+      amount >= 0 ||
+      !data.paymentMethodId
+    ) {
+      return;
+    }
+    const card = await this.paymentMethods.findOneBy({
+      id: data.paymentMethodId,
+      workspaceId: data.workspaceId,
+    });
+    if (!card || card.type !== PaymentMethodType.CREDIT_CARD) {
+      throw new BadRequestException("선결제할 신용카드를 확인해주세요.");
+    }
   }
 }
 

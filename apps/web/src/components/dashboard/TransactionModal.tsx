@@ -68,6 +68,15 @@ export function TransactionModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copying, setCopying] = useState(initialCopyMode);
   const [error, setError] = useState("");
+  const creditCards = methods.filter((method) => method.type === "CREDIT_CARD");
+  const existingPrepayment =
+    activeType === "BALANCE" &&
+    Number(transaction?.amount ?? 0) < 0 &&
+    creditCards.some((method) => method.id === transaction?.paymentMethodId);
+  const [creditCardPrepayment, setCreditCardPrepayment] = useState(existingPrepayment);
+  const [prepaymentCardId, setPrepaymentCardId] = useState(
+    existingPrepayment ? (transaction?.paymentMethodId ?? "") : "",
+  );
   const [category, setCategory] = useState(
     transaction?.category ??
       (activeType === "BALANCE" ? "잔액" : (categories[0]?.name ?? "")),
@@ -95,17 +104,26 @@ export function TransactionModal({
     setLoading(true);
     setError("");
     const form = new FormData(event.currentTarget);
+    const enteredAmount = Number(form.get("amount"));
+    if (creditCardPrepayment && (!prepaymentCardId || enteredAmount === 0)) {
+      setLoading(false);
+      setError("선결제할 신용카드와 금액을 확인해주세요.");
+      return;
+    }
     try {
       await onSubmit(
         {
           type: activeType!,
           title: String(form.get("title")),
-          amount: Number(form.get("amount")),
+          amount: creditCardPrepayment
+            ? -Math.abs(enteredAmount)
+            : enteredAmount,
           category: String(form.get("category")),
           memo: String(form.get("memo") || "").trim() || undefined,
           date: String(form.get("date")),
-          paymentMethodId:
-            String(form.get("paymentMethodId") || "") || undefined,
+          paymentMethodId: creditCardPrepayment
+            ? prepaymentCardId
+            : String(form.get("paymentMethodId") || "") || undefined,
           balanceMode:
             activeType === "BALANCE"
               ? form.get("monthlyReset")
@@ -181,7 +199,12 @@ export function TransactionModal({
               <MoneyInput
                 name="amount"
                 required
-                defaultValue={transaction?.amount}
+                defaultValue={
+                  existingPrepayment
+                    ? Math.abs(Number(transaction?.amount))
+                    : transaction?.amount
+                }
+                allowNegative={activeType === "BALANCE" && !creditCardPrepayment}
                 placeholder="0"
                 disabled={readOnly}
               />
@@ -336,9 +359,40 @@ export function TransactionModal({
           {activeType === "BALANCE" && (
             <div className={s.balanceOption}>
               <Checkbox
+                checked={creditCardPrepayment}
+                onChange={(event) => {
+                  setCreditCardPrepayment(event.target.checked);
+                  if (!event.target.checked) setPrepaymentCardId("");
+                }}
+                disabled={readOnly}
+              >
+                다음 신용카드 결제액 미리 결제
+                <small>
+                  등록 즉시 잔액에서 차감하고, 선택한 카드의 결제일에는 같은 금액을
+                  다시 차감하지 않아요.
+                </small>
+              </Checkbox>
+              {creditCardPrepayment && (
+                <FormField label="선결제 신용카드">
+                  <Select
+                    value={prepaymentCardId}
+                    onChange={(event) => setPrepaymentCardId(event.target.value)}
+                    required
+                    disabled={readOnly}
+                  >
+                    <option value="">신용카드 선택</option>
+                    {creditCards.map((method) => (
+                      <option value={method.id} key={method.id}>
+                        {method.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              )}
+              <Checkbox
                 name="monthlyReset"
                 defaultChecked={transaction?.balanceMode === "MONTHLY_RESET"}
-                disabled={readOnly}
+                disabled={readOnly || creditCardPrepayment}
               >
                 매월 이 날짜에 잔액 초기화
                 <small>
