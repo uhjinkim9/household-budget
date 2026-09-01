@@ -28,3 +28,23 @@ docker run --rm -p 3000:3000 household-budget-web
 - `DISCORD_WEBHOOK`: 배포 결과 알림 webhook
 
 Helm Deployment에는 최소한 `DATABASE_URL`, `JWT_SECRET`, `API_KEY_ENCRYPTION_SECRET`을 secret으로 주입하고 서비스의 target port를 3000으로 지정해야 합니다. 운영 환경에서는 `DB_SYNCHRONIZE=false` 사용을 권장합니다.
+
+## 오픈뱅킹 계좌 연결
+
+금융결제원 개발자 포털에서 발급한 값은 API 컨테이너에만 주입합니다.
+
+```text
+OPEN_BANKING_CLIENT_ID
+OPEN_BANKING_CLIENT_SECRET
+OPEN_BANKING_REDIRECT_URI
+```
+
+개발자 포털 테스트베드는 기본적으로 `https://testapi.openbanking.or.kr`을 사용합니다. 운영 승인을 받은 뒤에는 `OPEN_BANKING_BASE_URL=https://openapi.openbanking.or.kr`로 변경합니다. 잔액조회에는 발급된 10자리 이용기관 코드를 `OPEN_BANKING_USE_ORG_CODE`로 추가해야 합니다.
+
+Callback URL:
+
+```text
+https://household-budget.mercury-lab.uk/api/integrations/open-banking/oauth/callback
+```
+
+Access Token과 Refresh Token은 사용자별로 DB에 AES-256-GCM 암호화 저장되며 브라우저로 반환하지 않습니다.

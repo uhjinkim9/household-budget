@@ -10,12 +10,14 @@ export class DirectNotificationPublisher implements NotificationPublisher {
   constructor(private readonly discord: DiscordWebhookService) {}
 
   async transactionCreated(transaction: Transaction) {
-    if (transaction.type === TransactionType.BALANCE) return;
-    const type =
-      transaction.type === TransactionType.FIXED ? "정기 지출" : "일시적 소비";
+    const notification = {
+      [TransactionType.BALANCE]: { type: "잔액", emoji: "💰" },
+      [TransactionType.FIXED]: { type: "정기 지출", emoji: "🔁" },
+      [TransactionType.VARIABLE]: { type: "일시적 소비", emoji: "💳" },
+    }[transaction.type];
     const memo = transaction.memo ? `\n> 메모: ${transaction.memo}` : "";
     const message =
-      `💳 **${type}이 등록됐어요**\n` +
+      `${notification.emoji} **${notification.type}이 등록됐어요**\n` +
       `**${transaction.title}** · ${Number(transaction.amount).toLocaleString("ko-KR")}원\n` +
       `${transaction.date} · ${transaction.category}${memo}`;
     try {

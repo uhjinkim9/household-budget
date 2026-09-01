@@ -31,6 +31,49 @@
   display: grid;
   gap: 25px;
 }
+.bankingCard {
+  margin-bottom: 20px;
+}
+.integrationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.integrationHeader h2 {
+  margin: 0 0 5px;
+  font-size: 17px;
+}
+.integrationHeader .description {
+  margin: 0;
+}
+.integrationNotice {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #fff7e0;
+  color: #7a5712;
+  font-size: 13px;
+}
+.bankAccount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 0;
+  border-top: 1px solid $line;
+}
+.bankAccount > div {
+  display: grid;
+  gap: 5px;
+}
+.bankAccount span {
+  color: $muted;
+  font-size: 12px;
+}
+.balance {
+  text-align: right;
+}
 .avatarSection {
   display: flex;
   align-items: center;
@@ -122,6 +165,14 @@
   }
 }
 @media (max-width: 500px) {
+  .integrationHeader,
+  .bankAccount {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .balance {
+    text-align: left;
+  }
   .avatarSection {
     align-items: flex-start;
   }

@@ -7,6 +7,7 @@ import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authenticate, hasSession, saveSession } from "@/lib/auth";
+import { openBankingApi } from "@/lib/open-banking-api";
 import s from "@/components/auth/AuthForm.module.scss";
 export default function LoginPage() {
   const router = useRouter(),
@@ -27,6 +28,9 @@ export default function LoginPage() {
           password: String(d.get("password")),
         }),
       );
+      // 운영 빌드에서만 연결된 계좌의 잔액을 로그인 직후 갱신합니다.
+      // 계좌 미연결이나 금융결제원 일시 오류가 로그인을 막지는 않습니다.
+      void openBankingApi.refreshAfterLogin().catch(() => null);
       router.replace("/home");
     } catch (e) {
       setError(e instanceof Error ? e.message : "로그인에 실패했습니다.");
