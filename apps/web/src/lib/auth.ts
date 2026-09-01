@@ -1,1 +1,62 @@
-export interface SessionUser{id:string;email:string;name:string}export interface AuthResponse{accessToken:string;user:SessionUser}export interface VerificationResponse{email:string;expiresInSeconds:number;resendAfterSeconds:number}const TOKEN_KEY='budget-token',USER_KEY='budget-user',base=process.env.NEXT_PUBLIC_API_URL??'http://localhost:4000/api';async function post<T>(path:string,body:Record<string,string>):Promise<T>{const response=await fetch(`${base}/auth/${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),result=await response.json().catch(()=>({}));if(!response.ok){const message=Array.isArray(result.message)?result.message[0]:result.message;throw new Error(message??'요청을 처리하지 못했습니다.')}return result as T}export function saveSession(data:AuthResponse){localStorage.setItem(TOKEN_KEY,data.accessToken);localStorage.setItem(USER_KEY,JSON.stringify(data.user))}export function hasSession(){return typeof window!=='undefined'&&Boolean(localStorage.getItem(TOKEN_KEY))}export function clearSession(){localStorage.removeItem(TOKEN_KEY);localStorage.removeItem(USER_KEY)}export function authenticate(path:'login',body:Record<string,string>){return post<AuthResponse>(path,body)}export function requestRegistration(body:{name:string;email:string;password:string}){return post<VerificationResponse>('register',body)}export function verifyEmail(email:string,code:string){return post<AuthResponse>('verify-email',{email,code})}export function resendVerification(email:string){return post<VerificationResponse>('resend-verification',{email})}
+import {
+  publicPost,
+  removeStoredSession,
+  storeSession,
+  TOKEN_KEY,
+  type AuthResponse,
+  type SessionUser,
+} from "./http";
+
+export type { AuthResponse, SessionUser };
+
+export interface VerificationResponse {
+  email: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export function saveSession(data: AuthResponse) {
+  storeSession(data);
+}
+
+export function hasSession() {
+  return (
+    typeof window !== "undefined" && Boolean(localStorage.getItem(TOKEN_KEY))
+  );
+}
+
+export function clearSession() {
+  removeStoredSession();
+}
+
+export function authenticate(path: "login", body: Record<string, string>) {
+  return publicPost<AuthResponse>(`/auth/${path}`, body);
+}
+
+export function requestRegistration(body: {
+  name: string;
+  email: string;
+  password: string;
+}) {
+  return publicPost<VerificationResponse>("/auth/register", body);
+}
+
+export function verifyEmail(email: string, code: string) {
+  return publicPost<AuthResponse>("/auth/verify-email", { email, code });
+}
+
+export function resendVerification(email: string) {
+  return publicPost<VerificationResponse>("/auth/resend-verification", {
+    email,
+  });
+}
+
+export async function logoutSession() {
+  try {
+    await publicPost<{ success: boolean }>("/auth/logout");
+  } catch {
+    // 서버 연결 여부와 관계없이 현재 브라우저의 로그인 정보는 제거합니다.
+  } finally {
+    removeStoredSession();
+  }
+}

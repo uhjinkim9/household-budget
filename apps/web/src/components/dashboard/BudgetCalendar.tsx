@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   KoreanCalendar,
   type CalendarEvent,
@@ -8,6 +9,7 @@ import {
   type DropdownActionPayload,
 } from "calendar-mercury-lab";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/date-parser";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
 import s from "./BudgetCalendar.module.scss";
 
@@ -38,6 +40,8 @@ export function BudgetCalendar({
   onCreateNote: (date: string) => void;
   onSelectNote: (note: DailyNote) => void;
 }) {
+  const [dayPanel, setDayPanel] = useState<CellClickPayload | null>(null);
+
   const transactionEvents: CalendarEvent[] = items.map((item) => ({
     id: item.id,
     calendarId: item.type,
@@ -73,6 +77,8 @@ export function BudgetCalendar({
   }
 
   function menu(payload: CellClickPayload, close: () => void) {
+    // defer to avoid setState-during-render warning
+    queueMicrotask(() => setDayPanel(payload));
     const actions: [TransactionType, string, string][] = [
       ["BALANCE", "잔액", "현재 자산을 기록해요"],
       ["FIXED", "정기 지출", "매월 반복되는 지출"],
@@ -161,6 +167,54 @@ export function BudgetCalendar({
         renderDropdown={menu}
         fetchHolidays={api.holidays}
       />
+      {dayPanel && (
+        <div className={s.dayPanel}>
+          <div className={s.dayPanelHead}>
+            <strong>{formatDate(dayPanel.date)}</strong>
+            <button onClick={() => setDayPanel(null)} aria-label="닫기">×</button>
+          </div>
+          {dayPanel.events.length > 0 && (
+            <ul className={s.dayPanelList}>
+              {dayPanel.events.map((event) => (
+                <li key={event.id}>
+                  <i style={{ background: event.color }} />
+                  <button onClick={() => { selectEvent(event); setDayPanel(null); }}>
+                    {event.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className={s.dayPanelActions}>
+            {(
+              [
+                ["BALANCE", "잔액", colors.BALANCE],
+                ["FIXED", "정기 지출", "#607cb2"],
+                ["VARIABLE", "일시적 소비", colors.VARIABLE],
+              ] as [TransactionType, string, string][]
+            ).map(([type, label, color]) => (
+              <button
+                key={type}
+                style={{ background: color }}
+                onClick={() => { onCreate(type, dayPanel.date); setDayPanel(null); }}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              style={{ background: "#e0bb4e", color: "#594a22" }}
+              onClick={() => {
+                const existing = notes.find((note) => note.date === dayPanel.date);
+                if (existing) onSelectNote(existing);
+                else onCreateNote(dayPanel.date);
+                setDayPanel(null);
+              }}
+            >
+              메모
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

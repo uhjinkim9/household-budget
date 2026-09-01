@@ -1,1 +1,7 @@
-const base=process.env.NEXT_PUBLIC_API_URL??'http://localhost:4000/api';export async function leaveWorkspace(workspaceId:string){const token=localStorage.getItem('budget-token'),response=await fetch(`${base}/workspaces/${workspaceId}/leave`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}}),body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(Array.isArray(body.message)?body.message[0]:body.message??'가계에서 나가지 못했습니다.');return body as{workspaceId:string}}
+import { request } from "./http";
+
+export function leaveWorkspace(workspaceId: string) {
+  return request<{ workspaceId: string }>(`/workspaces/${workspaceId}/leave`, {
+    method: "DELETE",
+  });
+}

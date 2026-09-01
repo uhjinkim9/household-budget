@@ -1,1 +1,24 @@
-'use client';import{QueryClient,QueryClientProvider}from'@tanstack/react-query';import{useState}from'react';export function Providers({children}:{children:React.ReactNode}){const[q]=useState(()=>new QueryClient({defaultOptions:{queries:{staleTime:30000,retry:1}}}));return <QueryClientProvider client={q}>{children}</QueryClientProvider>}
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
+
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+      }),
+  );
+
+  useEffect(() => {
+    const clearExpiredSession = () => queryClient.clear();
+    window.addEventListener("budget:session-expired", clearExpiredSession);
+    return () =>
+      window.removeEventListener("budget:session-expired", clearExpiredSession);
+  }, [queryClient]);
+
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}

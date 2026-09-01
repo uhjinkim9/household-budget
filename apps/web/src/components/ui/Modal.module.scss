@@ -10,6 +10,8 @@
 }
 .modal {
   width: min(520px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   background: #fff;
   border-radius: 22px;
   box-shadow: $shadow;

@@ -1,4 +1,5 @@
 import type { DailyNote, PaymentMethod, Transaction } from "./types";
+import { ACTIVE_WORKSPACE_KEY, request } from "./http";
 
 export interface Workspace {
   id: string;
@@ -11,32 +12,6 @@ export interface Workspace {
 export interface Holiday {
   date: string;
   name: string;
-}
-
-const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const ACTIVE_WORKSPACE_KEY = "budget-active-workspace";
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("budget-token") : null;
-  if (!token) throw new Error("로그인이 필요합니다.");
-
-  const response = await fetch(`${base}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...init?.headers,
-    },
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      Array.isArray(body.message)
-        ? body.message[0]
-        : (body.message ?? "요청에 실패했습니다."),
-    );
-  return body as T;
 }
 
 async function listWorkspaces() {

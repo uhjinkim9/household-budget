@@ -1,4 +1,5 @@
 import type { Workspace } from "./api";
+import { request } from "./http";
 export interface WorkspaceMember {
   id: string;
   userId: string;
@@ -39,26 +40,6 @@ export interface DiscordWebhookSetting {
   lastSentAt: string | null;
   lastError: string | null;
   createdAt: string;
-}
-const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-async function request<T>(path: string, init?: RequestInit) {
-  const token = localStorage.getItem("budget-token"),
-    response = await fetch(`${base}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        ...init?.headers,
-      },
-    }),
-    body = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(
-      Array.isArray(body.message)
-        ? body.message[0]
-        : (body.message ?? "요청에 실패했습니다."),
-    );
-  return body as T;
 }
 export const workspaceSettingsApi = {
   get: (id: string) => request<WorkspaceSettings>(`/workspaces/${id}/settings`),

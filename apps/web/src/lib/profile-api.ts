@@ -1,1 +1,23 @@
-export interface Profile{id:string;email:string;name:string;profileImageUrl:string|null;provider:string}const base=process.env.NEXT_PUBLIC_API_URL??'http://localhost:4000/api';async function request<T>(init?:RequestInit){const token=localStorage.getItem('budget-token'),response=await fetch(`${base}/users/me`,{...init,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...init?.headers}}),body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(Array.isArray(body.message)?body.message[0]:body.message??'요청에 실패했습니다.');return body as T}export const profileApi={get:()=>request<Profile>(),update:(body:{name:string;profileImageUrl:string|null;currentPassword?:string;newPassword?:string})=>request<Profile>({method:'PATCH',body:JSON.stringify(body)})};
+import { request } from "./http";
+
+export interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  profileImageUrl: string | null;
+  provider: string;
+}
+
+export const profileApi = {
+  get: () => request<Profile>("/users/me"),
+  update: (body: {
+    name: string;
+    profileImageUrl: string | null;
+    currentPassword?: string;
+    newPassword?: string;
+  }) =>
+    request<Profile>("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+};
