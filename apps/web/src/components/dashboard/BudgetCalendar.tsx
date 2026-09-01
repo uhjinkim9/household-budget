@@ -9,8 +9,9 @@ import {
   type DropdownActionPayload,
 } from "calendar-mercury-lab";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/date-parser";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
+import { Button } from "../ui/Button";
+import { Modal } from "../ui/Modal";
 import s from "./BudgetCalendar.module.scss";
 
 const colors: Record<TransactionType, string> = {
@@ -26,6 +27,9 @@ export function BudgetCalendar({
   onCreate,
   onSelect,
   onDuplicate,
+  onDuplicateNote,
+  onDelete,
+  onDeleteNote,
   notes,
   onCreateNote,
   onSelectNote,
@@ -36,12 +40,14 @@ export function BudgetCalendar({
   onCreate: (type: TransactionType, date: string) => void;
   onSelect: (transaction: Transaction) => void;
   onDuplicate: (transaction: Transaction, date: string) => void;
+  onDuplicateNote: (note: DailyNote, date: string) => void;
+  onDelete: (transaction: Transaction) => void;
+  onDeleteNote: (note: DailyNote) => void;
   notes: DailyNote[];
   onCreateNote: (date: string) => void;
   onSelectNote: (note: DailyNote) => void;
 }) {
-  const [dayPanel, setDayPanel] = useState<CellClickPayload | null>(null);
-
+  const [mobileCreateDate, setMobileCreateDate] = useState<string | null>(null);
   const transactionEvents: CalendarEvent[] = items.map((item) => ({
     id: item.id,
     calendarId: item.type,
@@ -71,14 +77,31 @@ export function BudgetCalendar({
   }
 
   function dropdownAction(payload: DropdownActionPayload) {
-    if (payload.action !== "duplicate" || !payload.event) return;
+    if (payload.action === "create") {
+      setMobileCreateDate(payload.date);
+      return;
+    }
+    if (!payload.event) return;
+    if (payload.event.calendarId === "NOTE") {
+      const note = findNote(payload.event);
+      if (!note) return;
+      if (payload.action === "edit") onSelectNote(note);
+      if (payload.action === "duplicate") onDuplicateNote(note, payload.date);
+      if (payload.action === "delete") onDeleteNote(note);
+      return;
+    }
     const transaction = findTransaction(payload.event);
-    if (transaction) onDuplicate(transaction, payload.date);
+    if (!transaction) return;
+    if (payload.action === "edit") onSelect(transaction);
+    if (payload.action === "duplicate") onDuplicate(transaction, payload.date);
+    if (payload.action === "delete") onDelete(transaction);
+  }
+
+  function findNote(event: CalendarEvent) {
+    return notes.find((item) => `note:${item.id}` === event.id);
   }
 
   function menu(payload: CellClickPayload, close: () => void) {
-    // defer to avoid setState-during-render warning
-    queueMicrotask(() => setDayPanel(payload));
     const actions: [TransactionType, string, string][] = [
       ["BALANCE", "잔액", "현재 자산을 기록해요"],
       ["FIXED", "정기 지출", "매월 반복되는 지출"],
@@ -142,7 +165,7 @@ export function BudgetCalendar({
 
   function selectEvent(event: CalendarEvent) {
     if (event.calendarId === "NOTE") {
-      const note = notes.find((item) => `note:${item.id}` === event.id);
+      const note = findNote(event);
       if (note) onSelectNote(note);
       return;
     }
@@ -167,54 +190,53 @@ export function BudgetCalendar({
         renderDropdown={menu}
         fetchHolidays={api.holidays}
       />
-      {dayPanel && (
-        <div className={s.dayPanel}>
-          <div className={s.dayPanelHead}>
-            <strong>{formatDate(dayPanel.date)}</strong>
-            <button onClick={() => setDayPanel(null)} aria-label="닫기">×</button>
-          </div>
-          {dayPanel.events.length > 0 && (
-            <ul className={s.dayPanelList}>
-              {dayPanel.events.map((event) => (
-                <li key={event.id}>
-                  <i style={{ background: event.color }} />
-                  <button onClick={() => { selectEvent(event); setDayPanel(null); }}>
-                    {event.title}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className={s.dayPanelActions}>
-            {(
-              [
-                ["BALANCE", "잔액", colors.BALANCE],
-                ["FIXED", "정기 지출", "#607cb2"],
-                ["VARIABLE", "일시적 소비", colors.VARIABLE],
-              ] as [TransactionType, string, string][]
-            ).map(([type, label, color]) => (
-              <button
-                key={type}
-                style={{ background: color }}
-                onClick={() => { onCreate(type, dayPanel.date); setDayPanel(null); }}
-              >
-                {label}
-              </button>
-            ))}
-            <button
-              style={{ background: "#e0bb4e", color: "#594a22" }}
+      <Modal
+        open={Boolean(mobileCreateDate)}
+        title="기록 유형 선택"
+        onClose={() => setMobileCreateDate(null)}
+      >
+        <div className={s.mobileCreateOptions}>
+          {(
+            [
+              ["BALANCE", "잔액", "현재 가진 금액을 기록해요"],
+              ["FIXED", "정기 지출", "매월 반복되는 지출을 기록해요"],
+              ["VARIABLE", "일시적 소비", "한 번 발생한 소비를 기록해요"],
+            ] as [TransactionType, string, string][]
+          ).map(([type, label, hint]) => (
+            <Button
+              type="button"
+              variant="ghost"
+              key={type}
               onClick={() => {
-                const existing = notes.find((note) => note.date === dayPanel.date);
-                if (existing) onSelectNote(existing);
-                else onCreateNote(dayPanel.date);
-                setDayPanel(null);
+                onCreate(type, mobileCreateDate!);
+                setMobileCreateDate(null);
               }}
             >
-              메모
-            </button>
-          </div>
+              <span>
+                <b>{label}</b>
+                <small>{hint}</small>
+              </span>
+            </Button>
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              const existing = notes.find(
+                (note) => note.date === mobileCreateDate,
+              );
+              if (existing) onSelectNote(existing);
+              else onCreateNote(mobileCreateDate!);
+              setMobileCreateDate(null);
+            }}
+          >
+            <span>
+              <b>메모/일기</b>
+              <small>그날의 소비 소회를 남겨요</small>
+            </span>
+          </Button>
         </div>
-      )}
+      </Modal>
     </section>
   );
 }

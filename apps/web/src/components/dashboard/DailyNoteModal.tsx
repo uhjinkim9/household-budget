@@ -15,12 +15,14 @@ export function DailyNoteModal({
   onClose,
   onSave,
   onDelete,
+  initialContent = "",
 }: {
   date: string | null;
   note: DailyNote | null;
   onClose: () => void;
   onSave: (value: { date: string; content: string }) => Promise<void>;
   onDelete: () => Promise<void>;
+  initialContent?: string;
 }) {
   const [loading, setLoading] = useState(false),
     [confirmDelete, setConfirmDelete] = useState(false),
@@ -86,7 +88,7 @@ export function DailyNoteModal({
           >
             <Textarea
               name="content"
-              defaultValue={note?.content ?? ""}
+              defaultValue={note?.content ?? initialContent}
               maxLength={500}
               placeholder="예: OO이 생일선물 구매"
               required

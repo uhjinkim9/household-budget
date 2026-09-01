@@ -10,6 +10,7 @@ import { BudgetCalendar } from "@/components/dashboard/BudgetCalendar";
 import { CreateMenu } from "@/components/dashboard/CreateMenu";
 import { TransactionModal } from "@/components/dashboard/TransactionModal";
 import { DailyNoteModal } from "@/components/dashboard/DailyNoteModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { api } from "@/lib/api";
 import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
@@ -69,7 +70,14 @@ export default function Dashboard() {
     [selected, setSelected] = useState<Transaction | null>(null),
     [copyMode, setCopyMode] = useState(false),
     [noteDate, setNoteDate] = useState<string | null>(null),
-    [selectedNote, setSelectedNote] = useState<DailyNote | null>(null);
+    [selectedNote, setSelectedNote] = useState<DailyNote | null>(null),
+    [copiedNoteContent, setCopiedNoteContent] = useState(""),
+    [calendarDeleteTarget, setCalendarDeleteTarget] = useState<
+      | { kind: "transaction"; item: Transaction }
+      | { kind: "note"; item: DailyNote }
+      | null
+    >(null),
+    [calendarDeleteLoading, setCalendarDeleteLoading] = useState(false);
   const summary = useMemo(
     () => ({
       balance: balanceData?.balance ?? 0,
@@ -85,8 +93,10 @@ export default function Dashboard() {
   function start(t: TransactionType, d = date) {
     setNoteDate(null);
     setSelectedNote(null);
+    setCopiedNoteContent("");
     setSelected(null);
     setCopyMode(false);
+    setCopiedNoteContent("");
     setType(t);
     setDate(d);
   }
@@ -150,6 +160,32 @@ export default function Dashboard() {
     await api.deleteDailyNote(selectedNote.id, workspaceId);
     await qc.invalidateQueries({ queryKey: ["daily-notes", workspaceId] });
   }
+  async function confirmCalendarDelete() {
+    if (!workspaceId || !calendarDeleteTarget) return;
+    setCalendarDeleteLoading(true);
+    try {
+      if (calendarDeleteTarget.kind === "transaction") {
+        await api.deleteTransaction(calendarDeleteTarget.item.id, workspaceId);
+        await qc.invalidateQueries({
+          queryKey: ["transactions", workspaceId],
+        });
+        await qc.invalidateQueries({
+          queryKey: ["dashboard-balance", workspaceId],
+        });
+        await qc.invalidateQueries({
+          queryKey: ["next-card-payment-balance", workspaceId],
+        });
+      } else {
+        await api.deleteDailyNote(calendarDeleteTarget.item.id, workspaceId);
+        await qc.invalidateQueries({
+          queryKey: ["daily-notes", workspaceId],
+        });
+      }
+      setCalendarDeleteTarget(null);
+    } finally {
+      setCalendarDeleteLoading(false);
+    }
+  }
   if (isLoading)
     return <main className={s.state}>가계를 준비하고 있어요…</main>;
   if (error || !workspace)
@@ -211,9 +247,26 @@ export default function Dashboard() {
               setSelected({ ...transaction, date: duplicateDate });
               setCopyMode(true);
             }}
+            onDelete={(transaction) =>
+              setCalendarDeleteTarget({
+                kind: "transaction",
+                item: transaction,
+              })
+            }
             notes={notes}
             onCreateNote={(nextDate) => startNote(nextDate)}
             onSelectNote={(note) => startNote(note.date, note)}
+            onDuplicateNote={(note, duplicateDate) => {
+              setType(null);
+              setSelected(null);
+              setCopyMode(false);
+              setSelectedNote(null);
+              setCopiedNoteContent(note.content);
+              setNoteDate(duplicateDate);
+            }}
+            onDeleteNote={(note) =>
+              setCalendarDeleteTarget({ kind: "note", item: note })
+            }
           />
           <aside>
             <CardPerformance
@@ -236,15 +289,35 @@ export default function Dashboard() {
         initialCopyMode={copyMode}
       />
       <DailyNoteModal
-        key={selectedNote?.id ?? noteDate ?? "note-closed"}
+        key={`${selectedNote?.id ?? noteDate ?? "note-closed"}-${copiedNoteContent ? "copy" : "normal"}`}
         date={noteDate}
         note={selectedNote}
         onClose={() => {
           setNoteDate(null);
           setSelectedNote(null);
+          setCopiedNoteContent("");
         }}
         onSave={saveNote}
         onDelete={removeNote}
+        initialContent={copiedNoteContent}
+      />
+      <ConfirmModal
+        open={Boolean(calendarDeleteTarget)}
+        title={
+          calendarDeleteTarget?.kind === "note"
+            ? "날짜 메모 삭제"
+            : "소비 내역 삭제"
+        }
+        description={`정말 '${
+          calendarDeleteTarget?.kind === "transaction"
+            ? calendarDeleteTarget.item.title
+            : (calendarDeleteTarget?.item.content ?? "")
+        }' 항목을 삭제하시겠어요?`}
+        confirmLabel="삭제"
+        danger
+        loading={calendarDeleteLoading}
+        onClose={() => setCalendarDeleteTarget(null)}
+        onConfirm={confirmCalendarDelete}
       />
     </div>
   );

@@ -9,13 +9,15 @@
   gap: 12px;
 }
 .balanceOption {
+  display: grid;
+  gap: 16px;
   padding: 13px;
   border: 1px solid $line;
   border-radius: $radius-sm;
   background: #fafcfb;
 }
 .balanceOption small {
-  margin-top: 3px;
+  margin-top: 6px;
   color: $muted;
   font-size: 12px;
 }

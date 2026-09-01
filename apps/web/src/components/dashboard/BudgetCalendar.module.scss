@@ -89,83 +89,24 @@
   background: #8a6bb1;
 }
 
-.dayPanel {
-  display: none;
+.mobileCreateOptions {
+  display: grid;
+  gap: 8px;
 }
 
-@media (max-width: 640px) {
-  .panel :global(.kc-popover) {
-    display: none !important;
-  }
-  .dayPanel {
-    display: block;
-    border-top: 1px solid $line;
-    padding: 16px;
-    animation: panelIn 0.2s ease;
-  }
-  @keyframes panelIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .dayPanelHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .dayPanelHead strong {
-    font-size: 16px;
-  }
-  .dayPanelHead > button {
-    border: 0;
-    background: none;
-    font-size: 26px;
-    color: $muted;
-    line-height: 1;
-    padding: 0;
-  }
-  .dayPanelList {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 16px;
-    display: grid;
-    gap: 4px;
-  }
-  .dayPanelList li {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: $canvas;
-  }
-  .dayPanelList i {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex: 0 0 auto;
-  }
-  .dayPanelList button {
-    flex: 1;
-    border: 0;
-    background: none;
-    padding: 0;
-    font-size: 13px;
-    color: $ink;
-    text-align: left;
-  }
-  .dayPanelActions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-  }
-  .dayPanelActions button {
-    border: 0;
-    border-radius: 20px;
-    padding: 8px 15px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-    cursor: pointer;
-  }
+.mobileCreateOptions button {
+  height: auto;
+  justify-content: flex-start;
+  padding: 13px 15px;
+  text-align: left;
+}
+
+.mobileCreateOptions span {
+  display: grid;
+  gap: 3px;
+}
+
+.mobileCreateOptions small {
+  color: $muted;
+  font-weight: 400;
 }

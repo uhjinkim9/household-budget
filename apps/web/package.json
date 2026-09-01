@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
-    "calendar-mercury-lab": "^0.1.6",
+    "calendar-mercury-lab": "^0.1.8",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
