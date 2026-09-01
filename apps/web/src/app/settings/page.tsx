@@ -11,10 +11,6 @@ import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { profileApi, type Profile } from "@/lib/profile-api";
-import {
-  openBankingApi,
-  type OpenBankingStatus,
-} from "@/lib/open-banking-api";
 import s from "./page.module.scss";
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null),
@@ -22,8 +18,6 @@ export default function SettingsPage() {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [loading, setLoading] = useState(false),
-    [banking, setBanking] = useState<OpenBankingStatus | null>(null),
-    [bankingLoading, setBankingLoading] = useState(false),
     fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     profileApi
@@ -33,43 +27,7 @@ export default function SettingsPage() {
         setImage(p.profileImageUrl);
       })
       .catch((e) => setError(e.message));
-    openBankingApi
-      .status()
-      .then(setBanking)
-      .catch((e) => setError(e.message));
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("openBanking") === "connected") {
-      setMessage("오픈뱅킹 계좌를 연결했습니다.");
-      window.history.replaceState({}, "", "/settings");
-    } else if (params.get("openBanking") === "error") {
-      setError(params.get("message") || "오픈뱅킹 계좌 연결에 실패했습니다.");
-      window.history.replaceState({}, "", "/settings");
-    }
   }, []);
-  async function connectOpenBanking() {
-    setError("");
-    setBankingLoading(true);
-    try {
-      const { authorizationUrl } = await openBankingApi.connect();
-      window.location.assign(authorizationUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "계좌 연결을 시작하지 못했습니다.");
-      setBankingLoading(false);
-    }
-  }
-  async function refreshBalances() {
-    setError("");
-    setMessage("");
-    setBankingLoading(true);
-    try {
-      setBanking(await openBankingApi.refresh());
-      setMessage("연결된 계좌 잔액을 갱신했습니다.");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "잔액을 갱신하지 못했습니다.");
-    } finally {
-      setBankingLoading(false);
-    }
-  }
   async function selectImage(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -142,63 +100,6 @@ export default function SettingsPage() {
           <h1>내 프로필</h1>
           <span>계정 정보와 프로필 이미지를 관리하세요.</span>
         </header>
-        <section id="open-banking" className={`${s.card} ${s.bankingCard}`}>
-          <div className={s.integrationHeader}>
-            <div>
-              <h2>오픈뱅킹 계좌</h2>
-              <p className={s.description}>
-                금융결제원 오픈뱅킹에서 계좌와 잔액을 안전하게 불러옵니다.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant={banking?.connected ? "secondary" : "primary"}
-              disabled={bankingLoading || banking?.configured === false}
-              onClick={
-                banking?.connected ? refreshBalances : connectOpenBanking
-              }
-            >
-              {bankingLoading
-                ? "처리 중…"
-                : banking?.connected
-                  ? "잔액 새로고침"
-                  : "계좌 연결"}
-            </Button>
-          </div>
-          {banking?.configured === false && (
-            <p className={s.integrationNotice}>
-              서버에 오픈뱅킹 Client ID와 Client Secret을 설정해주세요.
-            </p>
-          )}
-          {banking?.connected && !banking.balanceEnabled && (
-            <p className={s.integrationNotice}>
-              계좌 연결은 완료됐습니다. 잔액조회에는 이용기관 코드 설정이 추가로 필요합니다.
-            </p>
-          )}
-          {banking?.accounts.map((account) => (
-            <article className={s.bankAccount} key={account.id}>
-              <div>
-                <b>{account.bankName}</b>
-                <span>
-                  {account.accountAlias || account.productName || "연결 계좌"} ·{" "}
-                  {account.accountNumMasked}
-                </span>
-              </div>
-              <div className={s.balance}>
-                <b>
-                  {account.balanceAmt === null
-                    ? "잔액 조회 전"
-                    : `${Number(account.balanceAmt).toLocaleString("ko-KR")}원`}
-                </b>
-                {account.balanceSyncedAt && (
-                  <span>
-                    {new Date(account.balanceSyncedAt).toLocaleString("ko-KR")} 기준
-                  </span>
-                )}
-              </div>
-            </article>
-          ))}
-        </section>
         <form className={s.card} onSubmit={submit}>
           {error && <p className={s.error}>{error}</p>}
           {message && <p className={s.success}>{message}</p>}

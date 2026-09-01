@@ -30,11 +30,13 @@ export class OpenBankingController {
       if (error) throw new Error(`오픈뱅킹 인증이 취소되었습니다. (${error})`);
       if (!code || !state) throw new Error("인가코드 또는 상태값이 없습니다.");
       await this.openBanking.completeAuthorization(code, state);
-      return response.redirect(`${webUrl}/settings?openBanking=connected`);
+      return response.redirect(
+        `${webUrl}/open-banking/callback?status=connected`,
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : "계좌 연결에 실패했습니다.";
       return response.redirect(
-        `${webUrl}/settings?openBanking=error&message=${encodeURIComponent(message)}`,
+        `${webUrl}/open-banking/callback?status=error&message=${encodeURIComponent(message)}`,
       );
     }
   }
