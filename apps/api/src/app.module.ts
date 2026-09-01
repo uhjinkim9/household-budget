@@ -13,7 +13,6 @@ import { HolidayModule } from "./holidays/holiday.module";
 import { HealthController } from "./health.controller";
 import { DailyNoteModule } from "./daily-notes/daily-note.module";
 import { NotificationModule } from "./notifications/notification.module";
-import { OpenBankingModule } from "./open-banking/open-banking.module";
 
 @Module({
   controllers: [HealthController],
@@ -45,7 +44,6 @@ import { OpenBankingModule } from "./open-banking/open-banking.module";
     HolidayModule,
     DailyNoteModule,
     NotificationModule,
-    OpenBankingModule,
   ],
 })
 export class AppModule {}
