@@ -11,10 +11,11 @@ export function LogoutButton() {
   const queryClient = useQueryClient();
 
   async function logout() {
-    await logoutSession();
+    const logoutUrl = await logoutSession();
     sessionStorage.removeItem("verification-email");
     queryClient.clear();
-    router.replace("/login");
+    if (logoutUrl) window.location.assign(logoutUrl);
+    else router.replace("/login");
   }
 
   return (

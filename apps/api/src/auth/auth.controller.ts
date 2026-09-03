@@ -1,7 +1,8 @@
 import { Body, Controller, Post, Req, Res } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { IsEmail, IsString, Length, MinLength } from "class-validator";
-import type { CookieOptions, Request, Response } from "express";
+import type { Request, Response } from "express";
+import { AuthCookieService } from "./auth-cookie.service";
+import { OidcService } from "./oidc.service";
 import { AuthService } from "./auth.service";
 
 class RegisterDto {
@@ -34,7 +35,8 @@ class VerifyDto extends EmailDto {
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
-    private readonly config: ConfigService,
+    private readonly cookies: AuthCookieService,
+    private readonly oidc: OidcService,
   ) {}
 
   @Post("register")
@@ -48,8 +50,12 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const session = await this.auth.verifyRegistration(dto.email, dto.code);
-    this.setRefreshCookie(response, session.refreshToken);
-    return session.response;
+    this.cookies.setAppSession(
+      response,
+      session.response.accessToken,
+      session.refreshToken,
+    );
+    return { user: session.response.user };
   }
 
   @Post("resend-verification")
@@ -63,13 +69,27 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const session = await this.auth.login(dto.email, dto.password);
-    this.setRefreshCookie(response, session.refreshToken);
-    return session.response;
+    this.cookies.setAppSession(
+      response,
+      session.response.accessToken,
+      session.refreshToken,
+    );
+    return { user: session.response.user };
   }
 
   @Post("refresh")
-  async refresh(@Req() request: Request) {
-    return this.auth.refresh(this.readRefreshCookie(request));
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.oidc.ensureActive(
+      this.cookies.read(request, "budget-oidc-session"),
+    );
+    const session = await this.auth.refresh(
+      this.cookies.read(request, "budget-refresh-token"),
+    );
+    this.cookies.setAccessToken(response, session.accessToken);
+    return { user: session.user };
   }
 
   @Post("logout")
@@ -77,33 +97,12 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    await this.auth.logout(this.readRefreshCookie(request));
-    response.clearCookie("budget-refresh-token", this.cookieOptions());
-    return { success: true };
-  }
-
-  private readRefreshCookie(request: Request) {
-    const cookies = request.headers.cookie?.split(";") ?? [];
-    const entry = cookies.find(
-      (cookie) => cookie.trim().split("=")[0] === "budget-refresh-token",
+    await this.auth.logout(this.cookies.read(request, "budget-refresh-token"));
+    const logoutUrl = await this.oidc.logoutUrl(
+      this.cookies.read(request, "budget-oidc-session"),
+      process.env.OIDC_POST_LOGOUT_REDIRECT_URI ?? "http://localhost:3000/",
     );
-    return entry
-      ? decodeURIComponent(entry.trim().slice(entry.indexOf("=") + 1))
-      : "";
-  }
-
-  private setRefreshCookie(response: Response, token: string) {
-    response.cookie("budget-refresh-token", token, this.cookieOptions());
-  }
-
-  private cookieOptions(): CookieOptions {
-    const days = this.config.get<number>("JWT_REFRESH_DAYS", 30);
-    return {
-      httpOnly: true,
-      secure: this.config.get("NODE_ENV") === "production",
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: days * 24 * 60 * 60 * 1000,
-    };
+    this.cookies.clearAll(response);
+    return { success: true, logoutUrl };
   }
 }

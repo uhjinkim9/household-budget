@@ -7,6 +7,7 @@ import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authenticate, hasSession, saveSession } from "@/lib/auth";
+import { API_BASE } from "@/lib/http";
 import s from "@/components/auth/AuthForm.module.scss";
 export default function LoginPage() {
   const router = useRouter(),
@@ -14,6 +15,10 @@ export default function LoginPage() {
     [loading, setLoading] = useState(false);
   useEffect(() => {
     if (hasSession()) router.replace("/home");
+    const oidcError = new URLSearchParams(window.location.search).get(
+      "oidcError",
+    );
+    if (oidcError) setError(oidcError);
   }, [router]);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +51,24 @@ export default function LoginPage() {
     >
       <form className={s.form} onSubmit={submit}>
         {error && <p className={s.error}>{error}</p>}
+        <Button
+          type="button"
+          block
+          className={s.oidc}
+          onClick={() => {
+            const returnUrl = new URLSearchParams(window.location.search).get(
+              "returnUrl",
+            );
+            window.location.assign(
+              `${API_BASE}/auth/oidc/login${
+                returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""
+              }`,
+            );
+          }}
+        >
+          Mercury Lab 통합 로그인
+        </Button>
+        <div className={s.divider}>또는 기존 계정으로 로그인</div>
         <FormField label="이메일">
           <Input
             name="email"

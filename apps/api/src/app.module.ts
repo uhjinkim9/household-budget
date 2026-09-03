@@ -27,9 +27,10 @@ import { NotificationModule } from "./notifications/notification.module";
         type: "postgres",
         url: c.getOrThrow<string>("DATABASE_URL"),
         autoLoadEntities: true,
-        synchronize: true,
-        // c.get<string>("DB_SYNCHRONIZE", "true") === "true" &&
-        // c.get("NODE_ENV") !== "production",
+        synchronize:
+          c.get<string>("DB_SYNCHRONIZE", "false") === "true" &&
+          c.get("NODE_ENV") !== "production",
+        migrationsRun: c.get<string>("DB_MIGRATIONS_RUN", "false") === "true",
         logging: c.get<string>("DB_LOGGING", "false") === "true",
       }),
     }),

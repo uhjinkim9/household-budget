@@ -2,7 +2,7 @@ import {
   publicPost,
   removeStoredSession,
   storeSession,
-  TOKEN_KEY,
+  USER_KEY,
   type AuthResponse,
   type SessionUser,
 } from "./http";
@@ -21,7 +21,7 @@ export function saveSession(data: AuthResponse) {
 
 export function hasSession() {
   return (
-    typeof window !== "undefined" && Boolean(localStorage.getItem(TOKEN_KEY))
+    typeof window !== "undefined" && Boolean(localStorage.getItem(USER_KEY))
   );
 }
 
@@ -52,11 +52,15 @@ export function resendVerification(email: string) {
 }
 
 export async function logoutSession() {
+  let logoutUrl: string | undefined;
   try {
-    await publicPost<{ success: boolean }>("/auth/logout");
+    logoutUrl = (
+      await publicPost<{ success: boolean; logoutUrl?: string }>("/auth/logout")
+    ).logoutUrl;
   } catch {
     // 서버 연결 여부와 관계없이 현재 브라우저의 로그인 정보는 제거합니다.
   } finally {
     removeStoredSession();
   }
+  return logoutUrl;
 }

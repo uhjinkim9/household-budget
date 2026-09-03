@@ -5,6 +5,7 @@ export enum AuthProvider {
   LOCAL = "LOCAL",
   GOOGLE = "GOOGLE",
   KAKAO = "KAKAO",
+  MERCURY_OIDC = "MERCURY_OIDC",
 }
 
 @Entity({ name: "users", comment: "서비스 사용자 계정" })
@@ -12,7 +13,11 @@ export class User extends TimestampEntity {
   @PrimaryGeneratedColumn("uuid", { comment: "사용자 식별자" })
   id!: string;
 
-  @Column({ length: 255, unique: true, comment: "로그인 및 이메일 인증에 사용하는 이메일 주소" })
+  @Column({
+    length: 255,
+    unique: true,
+    comment: "로그인 및 이메일 인증에 사용하는 이메일 주소",
+  })
   email!: string;
 
   @Column({
@@ -44,4 +49,3 @@ export class User extends TimestampEntity {
   })
   provider!: AuthProvider;
 }
-

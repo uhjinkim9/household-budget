@@ -5,11 +5,9 @@ export interface SessionUser {
 }
 
 export interface AuthResponse {
-  accessToken: string;
   user: SessionUser;
 }
 
-export const TOKEN_KEY = "budget-token";
 export const USER_KEY = "budget-user";
 export const ACTIVE_WORKSPACE_KEY = "budget-active-workspace";
 export const API_BASE =
@@ -48,25 +46,21 @@ export async function publicPost<T>(
 }
 
 export function storeSession(data: AuthResponse) {
-  localStorage.setItem(TOKEN_KEY, data.accessToken);
   localStorage.setItem(USER_KEY, JSON.stringify(data.user));
 }
 
 export function removeStoredSession() {
-  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem("budget-token");
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
 }
 
 async function fetchWithAccessToken(path: string, init?: RequestInit) {
-  const token =
-    typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
   return fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });

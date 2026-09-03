@@ -189,6 +189,12 @@ export class AuthService {
     });
   }
 
+  async issueForUser(userId: string) {
+    const user = await this.users.findOneBy({ id: userId });
+    if (!user) throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
+    return this.issue(user);
+  }
+
   private async issue(user: User) {
     const refreshToken = randomBytes(48).toString("base64url");
     const refreshDays = Number(this.config.get("JWT_REFRESH_DAYS", 30));
