@@ -13,6 +13,7 @@ import { HolidayModule } from "./holidays/holiday.module";
 import { HealthController } from "./health.controller";
 import { DailyNoteModule } from "./daily-notes/daily-note.module";
 import { NotificationModule } from "./notifications/notification.module";
+// import { AddMercuryOidc1788382800000 } from "./database/migrations/1788382800000-AddMercuryOidc";
 
 @Module({
   controllers: [HealthController],
@@ -27,10 +28,12 @@ import { NotificationModule } from "./notifications/notification.module";
         type: "postgres",
         url: c.getOrThrow<string>("DATABASE_URL"),
         autoLoadEntities: true,
-        synchronize:
-          c.get<string>("DB_SYNCHRONIZE", "false") === "true" &&
-          c.get("NODE_ENV") !== "production",
-        migrationsRun: c.get<string>("DB_MIGRATIONS_RUN", "false") === "true",
+        // migrations: [AddMercuryOidc1788382800000],
+        // synchronize:
+        //   c.get<string>("DB_SYNCHRONIZE", "false") === "true" &&
+        //   c.get("NODE_ENV") !== "production",
+        // migrationsRun: c.get<string>("DB_MIGRATIONS_RUN", "true") === "true",
+        synchronize: true,
         logging: c.get<string>("DB_LOGGING", "false") === "true",
       }),
     }),

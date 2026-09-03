@@ -23,7 +23,7 @@ npm run migration:run -w @budget/api
 npm run dev
 ```
 
-운영에서는 `DB_SYNCHRONIZE=false`, `DB_MIGRATIONS_RUN=true`를 사용한다. 개발 중 기존 동기화가 필요하면 로컬에서만 `DB_SYNCHRONIZE=true`를 사용할 수 있다.
+운영에서는 `DB_SYNCHRONIZE=false`, `DB_MIGRATIONS_RUN=true`를 사용한다. `DB_MIGRATIONS_RUN`을 생략해도 migration은 기본 실행되며, 별도 migration Job에서만 실행하려는 배포에서는 API 컨테이너에 `false`를 명시한다. 개발 중 기존 동기화가 필요하면 로컬에서만 `DB_SYNCHRONIZE=true`를 사용할 수 있다.
 
 ## 인증 경로
 
