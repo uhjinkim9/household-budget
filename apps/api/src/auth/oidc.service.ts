@@ -8,6 +8,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as bcrypt from "bcrypt";
+import { isUUID } from "class-validator";
 import {
   createHash,
   createPublicKey,
@@ -300,6 +301,11 @@ export class OidcService {
   }
 
   async logoutUrl(oidcSessionId: string, postLogoutRedirectUri: string) {
+    // Logout is idempotent: a missing, expired, or tampered session cookie must
+    // not turn an otherwise successful local logout into a database error.
+    if (!oidcSessionId || !isUUID(oidcSessionId)) {
+      return postLogoutRedirectUri;
+    }
     const session = await this.sessions.findOneBy({ id: oidcSessionId });
     if (!session) return postLogoutRedirectUri;
     const idToken = this.crypto.decrypt(session.idTokenEncrypted);
@@ -317,6 +323,9 @@ export class OidcService {
 
   async ensureActive(oidcSessionId: string) {
     if (!oidcSessionId) return;
+    if (!isUUID(oidcSessionId)) {
+      throw new UnauthorizedException("Mercury 로그인 세션이 유효하지 않습니다.");
+    }
     const session = await this.sessions.findOneBy({ id: oidcSessionId });
     if (!session)
       throw new UnauthorizedException(
