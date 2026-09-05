@@ -23,10 +23,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 }
 
 function readCookie(request: Request, name: string) {
-  const entry = (request.headers.cookie?.split(";") ?? []).find(
-    (cookie) => cookie.trim().split("=")[0] === name,
-  );
-  return entry
-    ? decodeURIComponent(entry.trim().slice(entry.indexOf("=") + 1))
-    : null;
+  for (const cookie of request.headers.cookie?.split(";") ?? []) {
+    const trimmed = cookie.trim();
+    const separator = trimmed.indexOf("=");
+
+    if (separator < 0) continue;
+    if (trimmed.slice(0, separator) !== name) continue;
+
+    return decodeURIComponent(trimmed.slice(separator + 1));
+  }
+
+  return null;
 }
