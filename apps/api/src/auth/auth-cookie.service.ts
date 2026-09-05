@@ -34,7 +34,7 @@ export class AuthCookieService {
     response.cookie(
       "budget-oidc-attempt",
       id,
-      this.options("/api/auth/oidc/callback", 10 * 60_000),
+      this.options("/api/auth", 10 * 60_000),
     );
   }
 
@@ -61,7 +61,7 @@ export class AuthCookieService {
       ["budget-refresh-token", "/api/auth"],
       ["budget-oidc-session", "/api/auth"],
       ["budget-oidc-pending", "/api/auth"],
-      ["budget-oidc-attempt", "/api/auth/oidc/callback"],
+      ["budget-oidc-attempt", "/api/auth"],
     ] as const) {
       response.clearCookie(name, this.options(path));
     }
@@ -70,7 +70,7 @@ export class AuthCookieService {
   clearAttempt(response: Response) {
     response.clearCookie(
       "budget-oidc-attempt",
-      this.options("/api/auth/oidc/callback"),
+      this.options("/api/auth"),
     );
   }
 
