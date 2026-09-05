@@ -70,7 +70,9 @@ export class OidcController {
         session.response.accessToken,
         session.refreshToken,
       );
-      response.redirect(`${this.webOrigin}${result.returnUrl}`);
+      const completeUrl = new URL("/auth/oidc/complete", this.webOrigin);
+      completeUrl.searchParams.set("returnUrl", result.returnUrl);
+      response.redirect(completeUrl.toString());
     } catch (caught) {
       this.cookies.clearAttempt(response);
       const message =
