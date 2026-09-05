@@ -1,8 +1,19 @@
-import { Body, Controller, Get, Post, Query, Req, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { IsString, MinLength } from "class-validator";
+import { AuthGuard } from "@nestjs/passport";
+import { IsEmail, IsString, MinLength } from "class-validator";
 import type { Request, Response } from "express";
 import { AuthCookieService } from "./auth-cookie.service";
+import { AuthUser } from "./auth-user.decorator";
 import { AuthService } from "./auth.service";
 import { OidcService } from "./oidc.service";
 
@@ -10,6 +21,11 @@ class LinkAccountDto {
   @IsString()
   @MinLength(8)
   password!: string;
+}
+
+class RelinkAccountDto extends LinkAccountDto {
+  @IsEmail()
+  email!: string;
 }
 
 @Controller("auth/oidc")
@@ -94,6 +110,31 @@ export class OidcController {
     const session = await this.auth.issueForUser(linked.userId);
     this.cookies.clearPending(response);
     this.cookies.setOidcSession(response, oidcSessionId);
+    this.cookies.setAppSession(
+      response,
+      session.response.accessToken,
+      session.refreshToken,
+    );
+    return { user: session.response.user };
+  }
+
+  @UseGuards(AuthGuard("jwt"))
+  @Post("relink-account")
+  async relinkAccount(
+    @AuthUser() user: { id: string },
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Body() dto: RelinkAccountDto,
+  ) {
+    const oidcSessionId = this.cookies.read(request, "budget-oidc-session");
+    await this.oidc.ensureActive(oidcSessionId);
+    const linked = await this.oidc.relinkExisting(
+      user.id,
+      oidcSessionId,
+      dto.email,
+      dto.password,
+    );
+    const session = await this.auth.issueForUser(linked.userId);
     this.cookies.setAppSession(
       response,
       session.response.accessToken,

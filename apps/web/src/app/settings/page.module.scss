@@ -87,6 +87,19 @@
 .description {
   margin: 0 0 17px;
 }
+.identitySection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.identitySection .description {
+  max-width: 480px;
+  margin-bottom: 0;
+}
+.identitySection > button {
+  flex: 0 0 auto;
+}
 .card footer {
   display: flex;
   justify-content: flex-end;
@@ -119,6 +132,10 @@
   }
   .fields {
     grid-template-columns: 1fr;
+  }
+  .identitySection {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 @media (max-width: 500px) {

@@ -20,12 +20,14 @@ import type { JsonWebKey as CryptoJsonWebKey } from "crypto";
 import { DataSource, LessThan, Repository } from "typeorm";
 import { OidcLoginAttempt } from "../entities/oidc-login-attempt.entity";
 import { OidcSession } from "../entities/oidc-session.entity";
+import { RefreshSession } from "../entities/refresh-session.entity";
 import {
   IdentityLinkStatus,
   IdentityMigrationStatus,
   UserIdentityLink,
 } from "../entities/user-identity-link.entity";
 import { AuthProvider, User } from "../entities/user.entity";
+import { WorkspaceMember } from "../entities/workspace.entity";
 import { MercuryIdentityService } from "./mercury-identity.service";
 import { OidcTokenCryptoService } from "./oidc-token-crypto.service";
 import {
@@ -298,6 +300,92 @@ export class OidcService {
       });
       throw error;
     }
+  }
+
+  async relinkExisting(
+    currentUserId: string,
+    oidcSessionId: string,
+    email: string,
+    password: string,
+  ) {
+    if (!isUUID(oidcSessionId))
+      throw new UnauthorizedException("Mercury 로그인 세션이 필요합니다.");
+
+    const session = await this.sessions.findOneBy({ id: oidcSessionId });
+    if (!session || session.userId !== currentUserId)
+      throw new UnauthorizedException("Mercury 로그인 세션이 일치하지 않습니다.");
+
+    const link = await this.links.findOneBy({
+      mercurySubject: session.mercurySubject,
+    });
+    if (
+      !link ||
+      link.status !== IdentityLinkStatus.LINKED ||
+      link.userId !== currentUserId
+    )
+      throw new BadRequestException("현재 중앙 계정 연결 상태를 확인해주세요.");
+
+    const currentUser = await this.users.findOneBy({ id: currentUserId });
+    if (currentUser?.provider !== AuthProvider.MERCURY_OIDC)
+      throw new BadRequestException("신규 통합 로그인 계정만 연결할 수 있습니다.");
+
+    const membershipCount = await this.dataSource
+      .getRepository(WorkspaceMember)
+      .countBy({ userId: currentUserId });
+    if (membershipCount > 0)
+      throw new ConflictException(
+        "새 계정에 가계 데이터가 생긴 후에는 자동 연결할 수 없습니다.",
+      );
+
+    const target = await this.users
+      .createQueryBuilder("user")
+      .addSelect("user.passwordHash")
+      .where("LOWER(user.email) = :email", {
+        email: email.trim().toLowerCase(),
+      })
+      .getOne();
+    if (
+      !target ||
+      target.id === currentUserId ||
+      !target.passwordHash ||
+      !(await bcrypt.compare(password, target.passwordHash))
+    )
+      throw new UnauthorizedException(
+        "기존 계정의 이메일 또는 비밀번호를 확인해주세요.",
+      );
+
+    const occupied = await this.links.findOneBy({ userId: target.id });
+    if (occupied && occupied.mercurySubject !== link.mercurySubject)
+      throw new ConflictException(
+        "이미 다른 Mercury 계정에 연결된 회원입니다.",
+      );
+
+    await this.identity.linkExistingAccount(
+      this.crypto.decrypt(session.accessTokenEncrypted),
+      target.id,
+      link.id,
+    );
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(UserIdentityLink, link.id, {
+        userId: target.id,
+        observedEmail: link.observedEmail,
+        status: IdentityLinkStatus.LINKED,
+        migrationStatus: IdentityMigrationStatus.COMPLETED,
+        linkedAt: new Date(),
+        migratedAt: new Date(),
+        lastError: null,
+      });
+      await manager.update(
+        OidcSession,
+        { mercurySubject: session.mercurySubject },
+        { userId: target.id },
+      );
+      await manager.delete(RefreshSession, { userId: currentUserId });
+      await manager.delete(User, { id: currentUserId });
+    });
+
+    return { userId: target.id };
   }
 
   async logoutUrl(oidcSessionId: string, postLogoutRedirectUri: string) {

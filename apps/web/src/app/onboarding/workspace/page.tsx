@@ -1,18 +1,27 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/Button";
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { api } from "@/lib/api";
+import { profileApi } from "@/lib/profile-api";
 import s from "./page.module.scss";
 export default function WorkspaceOnboarding() {
   const router = useRouter(),
     qc = useQueryClient(),
     [mode, setMode] = useState<"create" | "join">("create"),
+    [canLinkExisting, setCanLinkExisting] = useState(false),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
+  useEffect(() => {
+    profileApi
+      .get()
+      .then((profile) => setCanLinkExisting(profile.provider === "MERCURY_OIDC"))
+      .catch(() => setCanLinkExisting(false));
+  }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
@@ -96,6 +105,15 @@ export default function WorkspaceOnboarding() {
                 : "가계에 참여하기"}
           </Button>
         </form>
+        {canLinkExisting && (
+          <div className={s.existingAccount}>
+            <span>기존 가계부 계정이 있나요?</span>
+            <Link href="/auth/link-existing">
+              기존 가계부 계정 연결하기
+            </Link>
+            <small>기존 가계와 거래내역을 그대로 사용할 수 있어요.</small>
+          </div>
+        )}
       </section>
     </main>
   );

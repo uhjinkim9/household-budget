@@ -189,6 +189,27 @@ export default function SettingsPage() {
               </FormField>
             </div>
           </section>
+          {profile.provider === "MERCURY_OIDC" && (
+            <>
+              <div className={s.divider} />
+              <section className={s.identitySection}>
+                <div>
+                  <h2>기존 가계부 계정 연결</h2>
+                  <p className={s.description}>
+                    기존 계정의 가계와 거래내역을 이어서 사용합니다. 새
+                    가계를 만들기 전에만 연결할 수 있어요.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => window.location.assign("/auth/link-existing")}
+                >
+                  기존 계정 연결하기
+                </Button>
+              </section>
+            </>
+          )}
           <footer>
             <Button disabled={loading}>
               {loading ? "저장 중…" : "변경사항 저장"}
