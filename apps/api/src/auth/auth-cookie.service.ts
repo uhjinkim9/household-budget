@@ -68,10 +68,7 @@ export class AuthCookieService {
   }
 
   clearAttempt(response: Response) {
-    response.clearCookie(
-      "budget-oidc-attempt",
-      this.options("/api/auth"),
-    );
+    response.clearCookie("budget-oidc-attempt", this.options("/api/auth"));
   }
 
   clearPending(response: Response) {
