@@ -46,6 +46,8 @@ npm run dev
 
 Identity 내부 연결 API가 준비되지 않았다면 `MERCURY_IDENTITY_ACCOUNT_LINK_PATH`를 비워 둔다. 이 경우 기존 회원 연결은 완료되지 않고 기존 데이터도 변경되지 않는다.
 
+내부 연결 API는 일반 사용자 토큰이 아니라 Keycloak의 confidential service client가 Client Credentials로 발급받은 토큰으로 호출한다. `MERCURY_IDENTITY_CLIENT_ID`와 `MERCURY_IDENTITY_CLIENT_SECRET`은 API 서버 Secret에만 저장하고, 해당 서비스 계정에는 Identity API가 요구하는 최소 연결 권한을 부여한다. 현재 Identity API가 `mercury-admin`만 허용한다면 서비스 계정에만 그 역할을 부여하고 일반 사용자에게는 부여하지 않는다.
+
 ## Keycloak 운영 체크리스트
 
 - Client ID: `household-budget-web`

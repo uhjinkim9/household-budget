@@ -274,7 +274,7 @@ export class OidcService {
     await this.links.save(link);
     try {
       await this.identity.linkExistingAccount(
-        this.crypto.decrypt(session.accessTokenEncrypted),
+        session.mercurySubject,
         user.id,
         link.id,
       );
@@ -361,7 +361,7 @@ export class OidcService {
       );
 
     await this.identity.linkExistingAccount(
-      this.crypto.decrypt(session.accessTokenEncrypted),
+      session.mercurySubject,
       target.id,
       link.id,
     );
