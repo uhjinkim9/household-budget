@@ -1,0 +1,40 @@
+@use "../../styles/tokens" as *;
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: $canvas;
+}
+
+.page section {
+  @include card;
+  width: min(440px, 100%);
+  padding: 34px;
+  text-align: center;
+}
+
+.page span {
+  color: $green;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page h1 {
+  margin: 9px 0 10px;
+  font-size: 24px;
+}
+
+.page p {
+  margin: 0 0 22px;
+  color: $muted;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.page section > div {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}

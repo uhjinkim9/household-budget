@@ -14,6 +14,7 @@ export function Sidebar() {
   const pathname = usePathname(),
     queryClient = useQueryClient(),
     [user, setUser] = useState<StoredUser>({ name: "사용자" });
+  const displayName = user.name?.trim() || "사용자";
   const { data: active } = useQuery({
     queryKey: ["active-workspace"],
     queryFn: api.getOrCreateWorkspace,
@@ -27,7 +28,19 @@ export function Sidebar() {
     const load = () => {
       try {
         const value = localStorage.getItem("budget-user");
-        if (value) setUser(JSON.parse(value));
+        if (value) {
+          const stored = JSON.parse(value) as Partial<StoredUser>;
+          setUser({
+            name:
+              typeof stored.name === "string" && stored.name.trim()
+                ? stored.name
+                : "사용자",
+            profileImageUrl:
+              typeof stored.profileImageUrl === "string"
+                ? stored.profileImageUrl
+                : null,
+          });
+        }
       } catch {}
     };
     load();
@@ -104,10 +117,10 @@ export function Sidebar() {
           {user.profileImageUrl ? (
             <img src={user.profileImageUrl} alt="프로필" />
           ) : (
-            <i>{user.name.slice(0, 1)}</i>
+            <i>{displayName.slice(0, 1)}</i>
           )}
           <div>
-            <b>{user.name}</b>
+            <b>{displayName}</b>
             <small>
               {active?.role === "OWNER"
                 ? "가계 관리자"

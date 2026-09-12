@@ -208,9 +208,10 @@ export class AuthService {
   }
 
   private accessResponse(user: User) {
+    const name = user.name?.trim() || user.email.split("@")[0] || "사용자";
     return {
       accessToken: this.jwt.sign({ sub: user.id, email: user.email }),
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name },
     };
   }
 

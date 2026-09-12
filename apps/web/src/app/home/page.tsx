@@ -30,26 +30,30 @@ export default function Dashboard() {
   });
   const workspaceId = workspace?.id ?? "";
   const balanceAsOf = toLocalDateString();
-  const { data: items = [] } = useQuery({
+  const { data: transactionData } = useQuery({
     queryKey: ["transactions", workspaceId, range],
     queryFn: () => api.transactions(workspaceId, range.from, range.to),
     enabled: Boolean(workspaceId),
   });
-  const { data: notes = [] } = useQuery({
+  const items = Array.isArray(transactionData) ? transactionData : [];
+  const { data: noteData } = useQuery({
     queryKey: ["daily-notes", workspaceId, range.from, range.to],
     queryFn: () => api.dailyNotes(workspaceId, range.from, range.to),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
-  const { data: methods = [] } = useQuery({
+  const notes = Array.isArray(noteData) ? noteData : [];
+  const { data: methodData } = useQuery({
     queryKey: ["payment-methods", workspaceId],
     queryFn: () => api.paymentMethods(workspaceId),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
-  const { data: categories = [] } = useQuery({
+  const methods = Array.isArray(methodData) ? methodData : [];
+  const { data: categoryData } = useQuery({
     queryKey: ["workspace-categories", workspaceId],
     queryFn: () => workspaceSettingsApi.categories(workspaceId),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
+  const categories = Array.isArray(categoryData) ? categoryData : [];
   const { data: balanceData } = useQuery({
     queryKey: ["dashboard-balance", workspaceId, "current", balanceAsOf],
     queryFn: () => api.dashboardBalance(workspaceId, balanceAsOf),
@@ -213,7 +217,7 @@ export default function Dashboard() {
           balance={summary.balance}
           projectedBalance={nextCardPaymentBalance?.balance}
           projectedLabel={
-            nextCardPaymentBalance
+            nextCardPaymentBalance?.paymentDate
               ? `${formatDate(nextCardPaymentBalance.paymentDate)} 결제 후 예상`
               : undefined
           }
