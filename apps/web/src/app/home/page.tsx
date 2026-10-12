@@ -14,11 +14,17 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { api } from "@/lib/api";
 import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
-import { formatDate, toLocalDateString, yearBounds } from "@/lib/date-parser";
+import {
+  formatDate,
+  monthBounds,
+  toLocalDateString,
+  yearBounds,
+} from "@/lib/date-parser";
 import s from "./page.module.scss";
 export default function Dashboard() {
   const router = useRouter();
   const range = yearBounds(),
+    currentMonth = monthBounds(),
     qc = useQueryClient();
   const {
     data: workspace,
@@ -82,18 +88,22 @@ export default function Dashboard() {
       | null
     >(null),
     [calendarDeleteLoading, setCalendarDeleteLoading] = useState(false);
-  const summary = useMemo(
-    () => ({
+  const summary = useMemo(() => {
+    const occursThisMonth = (item: Transaction) =>
+      (item.date >= currentMonth.from && item.date <= currentMonth.to) ||
+      (item.recurrenceRule === "MONTHLY" && item.date <= currentMonth.to);
+    const monthlyItems = items.filter(occursThisMonth);
+
+    return {
       balance: balanceData?.balance ?? 0,
-      fixed: items
-        .filter((x) => x.type === "FIXED")
-        .reduce((a, b) => a + Number(b.amount), 0),
-      variable: items
-        .filter((x) => x.type === "VARIABLE")
-        .reduce((a, b) => a + Number(b.amount), 0),
-    }),
-    [items, balanceData],
-  );
+      fixed: monthlyItems
+        .filter((item) => item.type === "FIXED")
+        .reduce((sum, item) => sum + Number(item.amount), 0),
+      variable: monthlyItems
+        .filter((item) => item.type === "VARIABLE")
+        .reduce((sum, item) => sum + Number(item.amount), 0),
+    };
+  }, [items, balanceData, currentMonth.from, currentMonth.to]);
   function start(t: TransactionType, d = date) {
     setNoteDate(null);
     setSelectedNote(null);
