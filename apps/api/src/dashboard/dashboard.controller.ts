@@ -192,6 +192,16 @@ export class DashboardController {
       relations: { foodItems: true },
     });
     const totals = new Map<string, number>();
+    const transactions: Array<{
+      id: string;
+      title: string;
+      category: string;
+      type: TransactionType;
+      amount: number;
+      date: string;
+      memo: string | null;
+      paymentMethodId: string | null;
+    }> = [];
     const foodItemTotals = new Map<
       string,
       { name: string; quantity: number; purchaseCount: number; amount: number }
@@ -202,6 +212,20 @@ export class DashboardController {
           ? this.hasMonthlyOccurrence(row.date, from, to)
           : row.date >= from && row.date <= to;
       if (!included) continue;
+      const occurrenceDate =
+        row.recurrenceRule === "MONTHLY"
+          ? this.monthlyOccurrenceDate(row.date, from)
+          : row.date;
+      transactions.push({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        type: row.type,
+        amount: Number(row.amount),
+        date: occurrenceDate,
+        memo: row.memo,
+        paymentMethodId: row.paymentMethodId,
+      });
       totals.set(
         row.category,
         (totals.get(row.category) ?? 0) + Number(row.amount),
@@ -233,6 +257,11 @@ export class DashboardController {
         ...item,
         percentage: total ? (item.amount / total) * 100 : 0,
       })),
+      transactions: transactions.sort(
+        (left, right) =>
+          left.date.localeCompare(right.date) ||
+          left.title.localeCompare(right.title, "ko-KR"),
+      ),
       foodItems: [...foodItemTotals.values()].sort(
         (a, b) => b.quantity - a.quantity || b.amount - a.amount,
       ),
@@ -293,6 +322,12 @@ export class DashboardController {
     const [year, month] = from.split("-").map(Number);
     const occurrence = this.dateWithClampedDay(year, month, masterDay);
     return occurrence >= masterDate && occurrence >= from && occurrence <= to;
+  }
+
+  private monthlyOccurrenceDate(masterDate: string, monthDate: string) {
+    const [, , masterDay] = masterDate.split("-").map(Number);
+    const [year, month] = monthDate.split("-").map(Number);
+    return this.dateWithClampedDay(year, month, masterDay);
   }
 
   private async creditCardPayments(

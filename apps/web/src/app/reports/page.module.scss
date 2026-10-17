@@ -186,10 +186,20 @@
   border-bottom: 1px solid rgba($line, 0.7);
   border-radius: 10px;
   transition: background 0.18s ease;
+  cursor: pointer;
 }
 
 .categoryList article.focused {
   background: #f3f7f4;
+}
+
+.categoryList article.selected {
+  box-shadow: inset 0 0 0 1px rgba($green, 0.28);
+}
+
+.categoryList article:focus-visible {
+  outline: 2px solid rgba($green, 0.45);
+  outline-offset: 2px;
 }
 
 .categoryList article > i {
@@ -257,10 +267,80 @@
   font-size: 13px;
 }
 
-.foodRanking {
+.foodRanking,
+.categoryTransactions {
   @include card;
   margin-top: 16px;
   padding: 24px;
+}
+
+.detailHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $line;
+}
+
+.detailHeader p,
+.detailHeader h2 {
+  margin: 0;
+}
+
+.detailHeader p,
+.detailHeader span,
+.transactionList small {
+  color: $muted;
+  font-size: 12px;
+}
+
+.detailHeader h2 {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.transactionList article {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 15px 8px;
+  border-bottom: 1px solid rgba($line, 0.7);
+}
+
+.transactionList article:last-child {
+  border-bottom: 0;
+}
+
+.transactionList time {
+  color: $muted;
+  font-size: 13px;
+}
+
+.transactionList article > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.transactionList b,
+.transactionList small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transactionList strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.detailEmpty {
+  padding: 36px 12px 20px;
+  color: $muted;
+  font-size: 13px;
+  text-align: center;
 }
 
 .foodRankingHeader {
@@ -377,9 +457,26 @@
     padding: 20px 16px;
   }
 
+  .categoryTransactions {
+    padding: 20px 16px;
+  }
+
   .foodRankingHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .detailHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .transactionList article {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .transactionList strong {
+    grid-column: 2;
   }
 
   .foodRankingList article {

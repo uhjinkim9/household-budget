@@ -98,6 +98,16 @@ export const api = {
         amount: number;
         percentage: number;
       }>;
+      transactions: Array<{
+        id: string;
+        title: string;
+        category: string;
+        type: "FIXED" | "VARIABLE";
+        amount: number;
+        date: string;
+        memo: string | null;
+        paymentMethodId: string | null;
+      }>;
       foodItems: Array<{
         name: string;
         quantity: number;

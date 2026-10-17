@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Input } from "@/components/ui/Input";
 import { api } from "@/lib/api";
 import {
+  formatDate,
   monthBounds,
   parseLocalDate,
   toLocalDateString,
@@ -31,6 +32,7 @@ export default function ReportsPage() {
   const router = useRouter();
   const [month, setMonth] = useState(toLocalDateString().slice(0, 7));
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { data: workspace, isLoading: workspaceLoading } = useQuery({
     queryKey: ["active-workspace"],
     queryFn: api.getOrCreateWorkspace,
@@ -58,12 +60,26 @@ export default function ReportsPage() {
   }));
   const top = categories[0];
   const popularFoodItems = data?.foodItems ?? [];
+  const selectedIndex = categories.findIndex(
+    (item) => item.category === selectedCategory,
+  );
+  const activeIndex = focusedIndex ?? (selectedIndex >= 0 ? selectedIndex : null);
+  const selectedTransactions = (data?.transactions ?? []).filter(
+    (item) => item.category === selectedCategory,
+  );
 
   function moveMonth(offset: number) {
     const date = parseLocalDate(`${month}-01`);
     date.setMonth(date.getMonth() + offset);
     setMonth(toLocalDateString(date).slice(0, 7));
     setFocusedIndex(null);
+    setSelectedCategory(null);
+  }
+
+  function selectCategory(index: number) {
+    const category = categories[index]?.category;
+    if (category === undefined) return;
+    setSelectedCategory((current) => (current === category ? null : category));
   }
 
   return (
@@ -87,7 +103,11 @@ export default function ReportsPage() {
             <Input
               type="month"
               value={month}
-              onChange={(event) => setMonth(event.target.value)}
+              onChange={(event) => {
+                setMonth(event.target.value);
+                setFocusedIndex(null);
+                setSelectedCategory(null);
+              }}
               aria-label="조회 월"
             />
             <button
@@ -145,26 +165,27 @@ export default function ReportsPage() {
                   rounded
                   animate
                   startAngle={-90}
-                  segmentsShift={(index) => (focusedIndex === index ? 2 : 0)}
+                  segmentsShift={(index) => (activeIndex === index ? 2 : 0)}
                   onMouseOver={(_, index) => setFocusedIndex(index)}
                   onMouseOut={() => setFocusedIndex(null)}
+                  onClick={(_, index) => selectCategory(index)}
                 />
                 <div className={s.chartCenter}>
                   <span>
-                    {focusedIndex === null
+                    {activeIndex === null
                       ? "총지출"
-                      : chartData[focusedIndex].title}
+                      : chartData[activeIndex].title}
                   </span>
                   <strong>
                     {formatMoney(
-                      focusedIndex === null
+                      activeIndex === null
                         ? (data?.total ?? 0)
-                        : chartData[focusedIndex].value,
+                        : chartData[activeIndex].value,
                     )}
                   </strong>
                 </div>
               </div>
-              <p>차트에 마우스를 올리면 카테고리 금액을 볼 수 있어요.</p>
+              <p>카테고리를 누르면 해당 지출 내역을 확인할 수 있어요.</p>
             </div>
 
             <div className={s.categoryList}>
@@ -175,7 +196,21 @@ export default function ReportsPage() {
               {categories.map((item, index) => (
                 <article
                   key={item.category}
-                  className={focusedIndex === index ? s.focused : ""}
+                  className={
+                    activeIndex === index
+                      ? `${s.focused} ${selectedIndex === index ? s.selected : ""}`
+                      : ""
+                  }
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedIndex === index}
+                  onClick={() => selectCategory(index)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      selectCategory(index);
+                    }
+                  }}
                   onMouseEnter={() => setFocusedIndex(index)}
                   onMouseLeave={() => setFocusedIndex(null)}
                 >
@@ -203,7 +238,46 @@ export default function ReportsPage() {
           </section>
         )}
 
-        {!workspaceLoading && !isLoading && !isError && (
+        {!workspaceLoading &&
+          !isLoading &&
+          !isError &&
+          selectedCategory !== null && (
+            <section className={s.categoryTransactions}>
+              <div className={s.detailHeader}>
+                <div>
+                  <p>카테고리 상세</p>
+                  <h2>{selectedCategory || "미분류"} 지출 내역</h2>
+                </div>
+                <span>
+                  {range.label} · 총 {selectedTransactions.length}건
+                </span>
+              </div>
+              {selectedTransactions.length === 0 ? (
+                <div className={s.detailEmpty}>해당 지출 내역이 없습니다.</div>
+              ) : (
+                <div className={s.transactionList}>
+                  {selectedTransactions.map((item) => (
+                    <article key={`${item.id}-${item.date}`}>
+                      <time>{formatDate(item.date)}</time>
+                      <div>
+                        <b>{item.title}</b>
+                        <small>
+                          {item.type === "FIXED" ? "정기 지출" : "일시적 소비"}
+                          {item.memo ? ` · ${item.memo}` : ""}
+                        </small>
+                      </div>
+                      <strong>{formatMoney(item.amount)}</strong>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+        {!workspaceLoading &&
+          !isLoading &&
+          !isError &&
+          selectedCategory === "식비" && (
           <section className={s.foodRanking}>
             <div className={s.foodRankingHeader}>
               <div>
