@@ -5,7 +5,7 @@ import type { TransactionType } from '@/lib/types';
 import s from './CreateMenu.module.scss';
 
 const actions: Array<{ type: TransactionType; label: string; description: string; icon: string; tone: string }> = [
-  { type: 'BALANCE', label: '잔액', description: '현재 가진 금액 기록', icon: '₩', tone: 'balanceIcon' },
+  { type: 'BALANCE', label: '예산', description: '현재 가진 금액 기록', icon: '₩', tone: 'balanceIcon' },
   { type: 'FIXED', label: '정기 지출', description: '매월 반복되는 지출', icon: '↻', tone: 'fixedIcon' },
   { type: 'VARIABLE', label: '일시적 소비', description: '한 번 발생한 소비', icon: '⌁', tone: 'variableIcon' },
 ];

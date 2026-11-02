@@ -20,7 +20,7 @@ import { Textarea } from "../ui/Textarea";
 import s from "./TransactionModal.module.scss";
 
 const labels: Record<TransactionType, string> = {
-  BALANCE: "잔액",
+  BALANCE: "예산",
   FIXED: "정기 지출",
   VARIABLE: "일시적 소비",
 };
@@ -78,8 +78,9 @@ export function TransactionModal({
     existingPrepayment ? (transaction?.paymentMethodId ?? "") : "",
   );
   const [category, setCategory] = useState(
-    transaction?.category ??
-      (activeType === "BALANCE" ? "잔액" : (categories[0]?.name ?? "")),
+    activeType === "BALANCE"
+      ? "예산"
+      : (transaction?.category ?? categories[0]?.name ?? ""),
   );
   const [foodItems, setFoodItems] = useState<TransactionFoodItem[]>(() =>
     (transaction?.foodItems ?? []).map((item) => ({ ...item })),
@@ -87,7 +88,7 @@ export function TransactionModal({
   const editing = Boolean(transaction) && !copying;
   const categoryOptions =
     activeType === "BALANCE"
-      ? ["잔액"]
+      ? ["예산"]
       : categories.map((category) => category.name);
   if (
     transaction?.category &&
@@ -187,7 +188,7 @@ export function TransactionModal({
               required
               defaultValue={transaction?.title ?? ""}
               placeholder={
-                activeType === "BALANCE" ? "통장 잔액" : "무엇에 사용했나요?"
+                activeType === "BALANCE" ? "통장 예산" : "무엇에 사용했나요?"
               }
               autoFocus
               disabled={readOnly}
@@ -368,7 +369,7 @@ export function TransactionModal({
               >
                 다음 신용카드 결제액 미리 결제
                 <small>
-                  등록 즉시 잔액에서 차감하고, 선택한 카드의 결제일에는 같은 금액을
+                  등록 즉시 예산에서 차감하고, 선택한 카드의 결제일에는 같은 금액을
                   다시 차감하지 않아요.
                 </small>
               </Checkbox>
@@ -394,10 +395,10 @@ export function TransactionModal({
                 defaultChecked={transaction?.balanceMode === "MONTHLY_RESET"}
                 disabled={readOnly || creditCardPrepayment}
               >
-                매월 이 날짜에 잔액 초기화
+                매월 이 날짜에 예산 초기화
                 <small>
                   선택하면 매월 등록일에 입력한 금액으로 다시 시작해요. 선택하지
-                  않으면 잔액과 체크카드 소비를 계속 누적해요.
+                  않으면 예산과 체크카드 소비를 계속 누적해요.
                 </small>
               </Checkbox>
             </div>

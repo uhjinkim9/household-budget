@@ -103,7 +103,7 @@ export function BudgetCalendar({
 
   function menu(payload: CellClickPayload, close: () => void) {
     const actions: [TransactionType, string, string][] = [
-      ["BALANCE", "잔액", "현재 자산을 기록해요"],
+      ["BALANCE", "예산", "현재 자산을 기록해요"],
       ["FIXED", "정기 지출", "매월 반복되는 지출"],
       ["VARIABLE", "일시적 소비", "한 번 발생한 소비"],
     ];
@@ -179,7 +179,7 @@ export function BudgetCalendar({
         view={view}
         events={events}
         calendars={[
-          { id: "BALANCE", name: "잔액", color: colors.BALANCE },
+          { id: "BALANCE", name: "예산", color: colors.BALANCE },
           { id: "FIXED", name: "정기 지출", color: colors.FIXED },
           { id: "VARIABLE", name: "일시적 소비", color: colors.VARIABLE },
           { id: "NOTE", name: "메모", color: "#f4df9d" },
@@ -198,7 +198,7 @@ export function BudgetCalendar({
         <div className={s.mobileCreateOptions}>
           {(
             [
-              ["BALANCE", "잔액", "현재 가진 금액을 기록해요"],
+              ["BALANCE", "예산", "현재 가진 금액을 기록해요"],
               ["FIXED", "정기 지출", "매월 반복되는 지출을 기록해요"],
               ["VARIABLE", "일시적 소비", "한 번 발생한 소비를 기록해요"],
             ] as [TransactionType, string, string][]

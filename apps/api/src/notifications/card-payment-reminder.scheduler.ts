@@ -66,7 +66,7 @@ export class CardPaymentReminderScheduler {
 
       const result = await this.discord.sendToWorkspace(
         card.workspaceId,
-        `💳 **오늘 ${card.name} 결제일입니다!**\n출금 예정 금액: **${amount.toLocaleString("ko-KR")}원**\n통장 잔액을 확인해주세요.`,
+        `💳 **오늘 ${card.name} 결제일입니다!**\n출금 예정 금액: **${amount.toLocaleString("ko-KR")}원**\n통장 예산을 확인해주세요.`,
       );
       if (!result.delivered) {
         await this.logs.delete({

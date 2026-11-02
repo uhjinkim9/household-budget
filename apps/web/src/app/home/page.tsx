@@ -238,7 +238,7 @@ export default function Dashboard() {
         <div className={s.sectionTitle}>
           <div>
             <h2>가계 캘린더</h2>
-            <p>지출과 잔액 흐름을 날짜별로 확인하세요</p>
+            <p>지출과 예산 흐름을 날짜별로 확인하세요</p>
           </div>
           <span>캘린더의 날짜를 눌러 바로 기록할 수 있어요</span>
         </div>

@@ -24,7 +24,7 @@ export enum BalanceMode {
   MONTHLY_RESET = "MONTHLY_RESET",
 }
 
-@Entity({ name: "transactions", comment: "가계의 잔액 및 지출 거래 내역" })
+@Entity({ name: "transactions", comment: "가계의 예산 및 지출 거래 내역" })
 export class Transaction extends TimestampEntity {
   @PrimaryGeneratedColumn("uuid", { comment: "거래 식별자" })
   id!: string;
@@ -88,7 +88,7 @@ export class Transaction extends TimestampEntity {
     type: "enum",
     enum: BalanceMode,
     nullable: true,
-    comment: "잔액 누적 또는 매월 등록일 초기화 계산 방식",
+    comment: "예산 누적 또는 매월 등록일 초기화 계산 방식",
   })
   balanceMode!: BalanceMode | null;
 

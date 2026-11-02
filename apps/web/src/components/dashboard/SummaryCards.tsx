@@ -20,7 +20,7 @@ export function SummaryCards({
 }) {
   const data = [
     {
-      label: "현재 잔액",
+      label: "현재 예산",
       value: money(balance),
       hint: "오늘까지의 체크카드 소비 반영",
       tone: "balance",

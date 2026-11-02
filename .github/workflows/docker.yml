@@ -15,7 +15,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   GITOPS_REPOSITORY: uhjinkim9/helm-chart
-  CHART_PATH: charts/namespace-household-budget/household-budget
+  GITOPS_BRANCH: aws-migration
+  CHART_PATH: charts/household-budget
 
 jobs:
   build-and-push:
@@ -88,7 +89,9 @@ jobs:
 
   update-gitops:
     name: Update Helm image tag
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
     needs: build-and-push
     runs-on: ubuntu-latest
 
@@ -97,13 +100,15 @@ jobs:
         run: |
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
+          yq --version
 
       - name: Checkout GitOps repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GITOPS_REPOSITORY }}
-          ref: main
+          ref: ${{ env.GITOPS_BRANCH }}
           token: ${{ secrets.GITOPS_TOKEN }}
+          fetch-depth: 1
 
       - name: Update API and Web tags
         env:
@@ -113,10 +118,17 @@ jobs:
           VALUES_FILE="${CHART_PATH}/values.yaml"
 
           test -f "${VALUES_FILE}"
+          test "$(yq -r '.api.image.repository' "${VALUES_FILE}")" = \
+            "${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/household-budget-api"
+          test "$(yq -r '.web.image.repository' "${VALUES_FILE}")" = \
+            "${REGISTRY}/${GITHUB_REPOSITORY_OWNER}/household-budget-web"
+
           yq -i '.api.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
           yq -i '.web.image.tag = strenv(IMAGE_TAG)' "${VALUES_FILE}"
-          test "$(yq '.api.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
-          test "$(yq '.web.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+          test "$(yq -r '.api.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+          test "$(yq -r '.web.image.tag' "${VALUES_FILE}")" = "${IMAGE_TAG}"
+
+          echo "API/Web image tag: ${IMAGE_TAG}"
 
       - name: Commit and push Helm values
         env:
@@ -134,7 +146,7 @@ jobs:
           fi
 
           git commit -m "ci: deploy household-budget ${IMAGE_TAG} [skip ci]"
-          git push origin main
+          git push origin "HEAD:${GITOPS_BRANCH}"
 
   notify:
     name: Discord notification
@@ -143,14 +155,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Notify success
-        if: needs.build-and-push.result == 'success' && needs.update-gitops.result != 'failure'
+      - name: Notify image push and GitOps update success
+        if: needs.build-and-push.result == 'success' && needs.update-gitops.result == 'success'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: success
-          title: "✅ 빌드 성공: household-budget"
-          description: "동일 태그의 프론트/API 배포가 시작됩니다."
+          title: "✅ 이미지 Push 및 GitOps 업데이트 완료: household-budget"
+          description: |
+            **이미지 태그:** `build-${{ github.run_number }}`
+            **소스 커밋:** `${{ github.sha }}`
+            **GitOps 브랜치:** `${{ env.GITOPS_BRANCH }}`
+            **Helm Chart:** `${{ env.CHART_PATH }}`
+            Argo CD 자동 동기화 대상이 갱신되었습니다.
+            Kubernetes 배포 완료 여부는 Argo CD에서 확인해 주세요.
           color: 0x57F287
 
       - name: Notify failure
@@ -159,6 +177,33 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: failure
-          title: "❌ 빌드 실패: household-budget"
-          description: "로그: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          title: "❌ CI/CD 실패: household-budget"
+          description: |
+            이미지 빌드 또는 GitOps 업데이트 단계에서 실패했습니다.
+            **로그:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           color: 0xED4245
+
+      - name: Notify image push without GitOps update
+        if: needs.build-and-push.result == 'success' && needs.update-gitops.result == 'skipped'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: warning
+          title: "ℹ️ 이미지 Push 완료 · GitOps 업데이트 미수행: household-budget"
+          description: |
+            **이미지 태그:** `build-${{ github.run_number }}`
+            버전 태그 Push 또는 main 이외 ref에서 수동 실행한 경우입니다.
+            GitOps 이미지 태그는 변경되지 않았으며, 이번 실행으로 Argo CD 자동 배포는 시작되지 않았습니다.
+          color: 0xFEE75C
+
+      - name: Notify cancellation
+        if: needs.build-and-push.result == 'cancelled' || needs.update-gitops.result == 'cancelled'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: warning
+          title: "⚠️ CI/CD 취소됨: household-budget"
+          description: |
+            이미지 Push 또는 GitOps 업데이트가 완료되지 않았을 수 있습니다.
+            **로그:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          color: 0xFEE75C

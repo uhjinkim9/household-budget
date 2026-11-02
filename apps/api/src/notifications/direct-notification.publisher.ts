@@ -11,7 +11,7 @@ export class DirectNotificationPublisher implements NotificationPublisher {
 
   async transactionCreated(transaction: Transaction) {
     const notification = {
-      [TransactionType.BALANCE]: { type: "잔액", emoji: "💰" },
+      [TransactionType.BALANCE]: { type: "예산", emoji: "💰" },
       [TransactionType.FIXED]: { type: "정기 지출", emoji: "🔁" },
       [TransactionType.VARIABLE]: { type: "일시적 소비", emoji: "💳" },
     }[transaction.type];

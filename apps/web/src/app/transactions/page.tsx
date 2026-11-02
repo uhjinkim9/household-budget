@@ -27,13 +27,13 @@ type RangeMode = "DAY" | "WEEK" | "MONTH" | "YEAR" | "CUSTOM";
 
 const labels: Record<Filter, string> = {
   SPENDING: "전체 소비",
-  BALANCE: "잔액",
+  BALANCE: "예산",
   FIXED: "정기 지출",
   VARIABLE: "일시적 소비",
 };
 
 const typeLabels: Record<TransactionType, string> = {
-  BALANCE: "잔액",
+  BALANCE: "예산",
   FIXED: "정기 지출",
   VARIABLE: "일시적 소비",
 };
@@ -176,7 +176,7 @@ export default function TransactionsPage() {
               { value: "SPENDING", label: "전체 소비" },
               ...(workspace?.role === "VIEWER"
                 ? []
-                : [{ value: "BALANCE", label: "잔액" }]),
+                : [{ value: "BALANCE", label: "예산" }]),
               { value: "FIXED", label: "정기 지출" },
               { value: "VARIABLE", label: "일시적 소비" },
             ]}
@@ -301,7 +301,9 @@ export default function TransactionsPage() {
                   <time>{formatDate(item.date)}</time>
                   <div>
                     <b>{item.title}</b>
-                    <small>{item.category}</small>
+                    <small>
+                      {item.type === "BALANCE" ? "예산" : item.category}
+                    </small>
                   </div>
                   <span className={`${s.badge} ${s[item.type.toLowerCase()]}`}>
                     {typeLabels[item.type]}
