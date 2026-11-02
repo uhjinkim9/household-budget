@@ -86,22 +86,27 @@ export class DashboardController {
           );
         return row.date >= from ? sum + Number(row.amount) : sum;
       }, 0);
-    const creditCardPaid = await this.creditCardPayments(
+    const creditCardPayment = await this.creditCardPayments(
       rows,
       creditCards,
       from,
       asOf,
     );
     return {
-      balance: base + accumulated - checkCardSpent - creditCardPaid,
+      balance:
+        base + accumulated - checkCardSpent - creditCardPayment.automaticPaid,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
       breakdown: {
-        budgetInput: base + accumulated,
+        budgetInput:
+          base + accumulated + creditCardPayment.prepaidTotal,
         resetBase: base,
-        budgetAdjustments: accumulated,
+        budgetAdjustments:
+          accumulated + creditCardPayment.prepaidTotal,
         checkCardSpent,
-        creditCardPaid,
+        creditCardPaid: creditCardPayment.automaticPaid,
+        creditCardGross: creditCardPayment.gross,
+        creditCardPrepaid: creditCardPayment.prepaidTotal,
         calculationFrom: resetAt,
       },
     };
@@ -348,7 +353,10 @@ export class DashboardController {
     const [toYear, toMonth] = asOf.split("-").map(Number);
     const fromIndex = fromYear * 12 + fromMonth - 1;
     const toIndex = toYear * 12 + toMonth - 1;
-    let paid = 0;
+    let gross = 0;
+    let prepaidApplied = 0;
+    let prepaidTotal = 0;
+    let automaticPaid = 0;
 
     for (const card of cards) {
       if (!card.billingDay) continue;
@@ -367,6 +375,10 @@ export class DashboardController {
             row.date >= from,
         )
         .sort((left, right) => left.date.localeCompare(right.date));
+      prepaidTotal += prepayments.reduce(
+        (sum, row) => sum + Math.abs(Number(row.amount)),
+        0,
+      );
       let prepaymentIndex = 0;
       let prepaymentCredit = 0;
       const [firstYear, firstMonth] = cardRows
@@ -414,11 +426,13 @@ export class DashboardController {
           return included ? sum + Number(row.amount) : sum;
         }, 0);
         const prepaidAmount = Math.min(scheduledAmount, prepaymentCredit);
-        paid += scheduledAmount - prepaidAmount;
+        gross += scheduledAmount;
+        prepaidApplied += prepaidAmount;
+        automaticPaid += scheduledAmount - prepaidAmount;
         prepaymentCredit -= prepaidAmount;
       }
     }
-    return paid;
+    return { gross, prepaidApplied, prepaidTotal, automaticPaid };
   }
 
   private async nextCreditCardPaymentDate(

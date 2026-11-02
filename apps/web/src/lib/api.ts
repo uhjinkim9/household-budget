@@ -24,6 +24,8 @@ export interface DashboardBalance {
     budgetAdjustments: number;
     checkCardSpent: number;
     creditCardPaid: number;
+    creditCardGross?: number;
+    creditCardPrepaid?: number;
     calculationFrom: string | null;
   };
 }

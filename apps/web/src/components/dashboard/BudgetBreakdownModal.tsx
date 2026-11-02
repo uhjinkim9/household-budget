@@ -20,6 +20,7 @@ export function BudgetBreakdownModal({
 }) {
   if (!balance) return null;
   const { breakdown } = balance;
+  const creditCardPrepaid = breakdown.creditCardPrepaid ?? 0;
 
   return (
     <Modal open={open} title="현재 예산 계산 상세" onClose={onClose}>
@@ -49,9 +50,14 @@ export function BudgetBreakdownModal({
             <small>소비일 기준 즉시 차감</small>
           </div>
           <div>
-            <span>신용카드 결제</span>
+            <span>신용카드 결제일</span>
             <strong className={s.negative}>- {money(breakdown.creditCardPaid)}</strong>
-            <small>결제일이 도래한 청구액만 차감</small>
+            <small>결제일이 도래해 자동 차감된 금액</small>
+          </div>
+          <div>
+            <span>신용카드 선결제</span>
+            <strong className={s.negative}>- {money(creditCardPrepaid)}</strong>
+            <small>사용자가 미리 결제해 예산에서 차감한 금액</small>
           </div>
         </div>
 
