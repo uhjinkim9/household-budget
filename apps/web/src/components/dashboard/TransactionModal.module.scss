@@ -2,6 +2,13 @@
 .form {
   display: grid;
   gap: 17px;
+  min-width: 0;
+}
+.form > *,
+.row > *,
+.foodItems,
+.foodItemRow > * {
+  min-width: 0;
 }
 .row {
   display: grid;

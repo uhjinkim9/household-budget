@@ -10,7 +10,10 @@
 }
 .modal {
   width: min(520px, 100%);
+  min-width: 0;
+  max-width: 100%;
   max-height: calc(100dvh - 40px);
+  overflow-x: hidden;
   overflow-y: auto;
   background: #fff;
   border-radius: 22px;
@@ -49,13 +52,16 @@
 @media (max-width: 600px) {
   .backdrop {
     align-items: flex-end;
-    padding: 0;
+    padding: 0 8px;
+    overflow: hidden;
   }
   .modal {
-    width: 100%;
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
     border-radius: 20px 20px 0 0;
-    padding: 20px 20px 32px;
+    padding: 20px 20px calc(32px + env(safe-area-inset-bottom));
     max-height: 92dvh;
+    margin: 0;
     overflow-y: auto;
     animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
   }

@@ -185,6 +185,8 @@ export function TransactionModal({
           <FormField label="내역 이름">
             <Input
               name="title"
+              lang="ko"
+              inputMode="text"
               required
               defaultValue={transaction?.title ?? ""}
               placeholder={
@@ -270,6 +272,8 @@ export function TransactionModal({
               {foodItems.map((item, index) => (
                 <div className={s.foodItemRow} key={item.id ?? index}>
                   <Input
+                    lang="ko"
+                    inputMode="text"
                     value={item.name}
                     onChange={(event) =>
                       updateFoodItem(index, { name: event.target.value })
@@ -419,6 +423,8 @@ export function TransactionModal({
             >
               <Textarea
                 name="memo"
+                lang="ko"
+                inputMode="text"
                 maxLength={500}
                 rows={3}
                 defaultValue={transaction?.memo ?? ""}
