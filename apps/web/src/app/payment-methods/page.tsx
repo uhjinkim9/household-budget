@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +19,8 @@ const labels = {
   BANK_ACCOUNT: "계좌",
 };
 export default function PaymentMethodsPage() {
-  const qc = useQueryClient(),
+  const router = useRouter(),
+    qc = useQueryClient(),
     [open, setOpen] = useState(false),
     [selected, setSelected] = useState<PaymentMethod | null>(null),
     [error, setError] = useState("");
@@ -87,20 +89,49 @@ export default function PaymentMethodsPage() {
         ) : (
           <section className={s.grid}>
             {items.map((item) => (
-              <article key={item.id} onClick={() => edit(item)}>
+              <article
+                key={item.id}
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  router.push(
+                    `/transactions?type=SPENDING&paymentMethodId=${encodeURIComponent(item.id)}`,
+                  )
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ")
+                    router.push(
+                      `/transactions?type=SPENDING&paymentMethodId=${encodeURIComponent(item.id)}`,
+                    );
+                }}
+                aria-label={`${item.name} 거래 내역 보기`}
+              >
                 <div className={`${s.icon} ${s[item.type.toLowerCase()]}`}>
                   {item.type === "CASH" ? "₩" : "▰"}
                 </div>
                 <div className={s.cardHead}>
                   <span>{labels[item.type]}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      remove(item);
-                    }}
-                  >
-                    삭제
-                  </button>
+                  <div className={s.actions}>
+                    <button
+                      type="button"
+                      className={s.edit}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        edit(item);
+                      }}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        remove(item);
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 <h2>{item.name}</h2>
                 {item.type === "CASH" ? (
@@ -133,7 +164,7 @@ export default function PaymentMethodsPage() {
                     )}
                   </dl>
                 )}
-                <small>클릭하여 수정</small>
+                <small>클릭하여 거래 내역 보기</small>
               </article>
             ))}
           </section>

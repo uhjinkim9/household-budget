@@ -56,11 +56,14 @@ export default function TransactionsPage() {
   const [referenceDate, setReferenceDate] = useState(today);
   const [customFrom, setCustomFrom] = useState(initialMonth.from);
   const [customTo, setCustomTo] = useState(initialMonth.to);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
   const [selected, setSelected] = useState<Transaction | null>(null);
 
   useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get("type");
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("type");
     if (value && value in labels) setFilter(value as Filter);
+    setPaymentMethodId(params.get("paymentMethodId") ?? "");
   }, []);
 
   const range = useMemo(() => {
@@ -108,10 +111,16 @@ export default function TransactionsPage() {
 
   const visible = useMemo(
     () =>
-      items.filter((item) =>
-        filter === "SPENDING" ? item.type !== "BALANCE" : item.type === filter,
-      ),
-    [items, filter],
+      items.filter((item) => {
+        const matchesType =
+          filter === "SPENDING"
+            ? item.type !== "BALANCE"
+            : item.type === filter;
+        const matchesPaymentMethod =
+          !paymentMethodId || item.paymentMethodId === paymentMethodId;
+        return matchesType && matchesPaymentMethod;
+      }),
+    [items, filter, paymentMethodId],
   );
   const total = visible.reduce((sum, item) => sum + Number(item.amount), 0);
 
@@ -119,6 +128,14 @@ export default function TransactionsPage() {
     setFilter(next);
     const params = new URLSearchParams(window.location.search);
     params.set("type", next);
+    router.replace(`/transactions?${params.toString()}`);
+  }
+
+  function changePaymentMethod(next: string) {
+    setPaymentMethodId(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next) params.set("paymentMethodId", next);
+    else params.delete("paymentMethodId");
     router.replace(`/transactions?${params.toString()}`);
   }
 
@@ -188,6 +205,20 @@ export default function TransactionsPage() {
         </header>
 
         <section className={s.rangePanel}>
+          <Select
+            options={[
+              { value: "", label: "전체 결제 수단" },
+              ...methods.map((method) => ({
+                value: method.id,
+                label: method.name,
+              })),
+            ]}
+            value={paymentMethodId}
+            onValueChange={changePaymentMethod}
+            tone="light"
+            width={180}
+            aria-label="결제 수단별 조회"
+          />
           <Select
             options={rangeOptions}
             value={rangeMode}
@@ -263,7 +294,11 @@ export default function TransactionsPage() {
         </section>
 
         <section className={s.summary}>
-          <span>{labels[filter]} 합계</span>
+          <span>
+            {paymentMethodId
+              ? `${methods.find((method) => method.id === paymentMethodId)?.name ?? "선택한 결제 수단"} 합계`
+              : `${labels[filter]} 합계`}
+          </span>
           <strong>{total.toLocaleString("ko-KR")}원</strong>
           <small>총 {visible.length}건</small>
         </section>
