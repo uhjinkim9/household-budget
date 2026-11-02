@@ -1,0 +1,82 @@
+@use "../../styles/tokens" as *;
+
+.content {
+  display: grid;
+  gap: 18px;
+}
+
+.description,
+.notice {
+  margin: 0;
+  color: $muted;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.formula {
+  overflow: hidden;
+  border: 1px solid $line;
+  border-radius: 14px;
+}
+
+.formula > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 16px;
+  padding: 15px 16px;
+  border-bottom: 1px solid $line;
+}
+
+.formula > div:last-child {
+  border-bottom: 0;
+}
+
+.formula span {
+  color: $ink;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.formula strong {
+  font-size: 14px;
+  text-align: right;
+}
+
+.formula small {
+  grid-column: 1 / -1;
+  color: $muted;
+  font-size: 11px;
+}
+
+.positive {
+  color: $green;
+}
+
+.negative {
+  color: $red;
+}
+
+.total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 18px;
+  border-radius: 14px;
+  background: $mint;
+  color: $green;
+}
+
+.total span {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.total strong {
+  font-size: 22px;
+}
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: $canvas;
+}

@@ -96,6 +96,14 @@ export class DashboardController {
       balance: base + accumulated - checkCardSpent - creditCardPaid,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
+      breakdown: {
+        budgetInput: base + accumulated,
+        resetBase: base,
+        budgetAdjustments: accumulated,
+        checkCardSpent,
+        creditCardPaid,
+        calculationFrom: resetAt,
+      },
     };
   }
 

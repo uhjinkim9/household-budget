@@ -10,6 +10,7 @@ export function SummaryCards({
   spent,
   fixed,
   variable,
+  onBalanceClick,
 }: {
   balance: number;
   projectedBalance?: number;
@@ -17,6 +18,7 @@ export function SummaryCards({
   spent: number;
   fixed: number;
   variable: number;
+  onBalanceClick?: () => void;
 }) {
   const data = [
     {
@@ -54,12 +56,9 @@ export function SummaryCards({
 
   return (
     <section className={s.grid}>
-      {data.map((item) => (
-        <Link
-          href={`/transactions?type=${item.type}`}
-          key={item.label}
-          className={s.card}
-        >
+      {data.map((item) => {
+        const content = (
+          <>
           <div>
             <span>{item.label}</span>
             <i className={s[item.tone]} />
@@ -72,9 +71,30 @@ export function SummaryCards({
             </div>
           )}
           <small>{item.hint}</small>
-          <em>목록 보기 →</em>
-        </Link>
-      ))}
+          <em>{item.type === "BALANCE" ? "계산 상세 보기 →" : "목록 보기 →"}</em>
+          </>
+        );
+        if (item.type === "BALANCE")
+          return (
+            <button
+              type="button"
+              key={item.label}
+              className={`${s.card} ${s.buttonCard}`}
+              onClick={onBalanceClick}
+            >
+              {content}
+            </button>
+          );
+        return (
+          <Link
+            href={`/transactions?type=${item.type}`}
+            key={item.label}
+            className={s.card}
+          >
+            {content}
+          </Link>
+        );
+      })}
     </section>
   );
 }

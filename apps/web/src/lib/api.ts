@@ -14,6 +14,20 @@ export interface Holiday {
   name: string;
 }
 
+export interface DashboardBalance {
+  balance: number;
+  mode: "CUMULATIVE" | "MONTHLY_RESET";
+  resetAt: string | null;
+  breakdown: {
+    budgetInput: number;
+    resetBase: number;
+    budgetAdjustments: number;
+    checkCardSpent: number;
+    creditCardPaid: number;
+    calculationFrom: string | null;
+  };
+}
+
 async function listWorkspaces() {
   return request<Workspace[]>("/workspaces");
 }
@@ -81,11 +95,9 @@ export const api = {
       method: "DELETE",
     }),
   dashboardBalance: (workspaceId: string, asOf: string) =>
-    request<{
-      balance: number;
-      mode: "CUMULATIVE" | "MONTHLY_RESET";
-      resetAt: string | null;
-    }>(`/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}`),
+    request<DashboardBalance>(
+      `/dashboard/balance?workspaceId=${workspaceId}&asOf=${asOf}`,
+    ),
   nextCardPaymentBalance: (workspaceId: string, asOf: string) =>
     request<{ paymentDate: string; balance: number } | null>(
       `/dashboard/next-card-payment-balance?workspaceId=${workspaceId}&asOf=${asOf}`,

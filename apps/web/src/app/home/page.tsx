@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CalendarView } from "calendar-mercury-lab";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
+import { BudgetBreakdownModal } from "@/components/dashboard/BudgetBreakdownModal";
 import { CardPerformance } from "@/components/dashboard/CardPerformance";
 import { BudgetCalendar } from "@/components/dashboard/BudgetCalendar";
 import { CreateMenu } from "@/components/dashboard/CreateMenu";
@@ -88,6 +89,7 @@ export default function Dashboard() {
       | null
     >(null),
     [calendarDeleteLoading, setCalendarDeleteLoading] = useState(false);
+  const [budgetBreakdownOpen, setBudgetBreakdownOpen] = useState(false);
   const summary = useMemo(() => {
     const occursThisMonth = (item: Transaction) =>
       (item.date >= currentMonth.from && item.date <= currentMonth.to) ||
@@ -234,6 +236,7 @@ export default function Dashboard() {
           spent={summary.fixed + summary.variable}
           fixed={summary.fixed}
           variable={summary.variable}
+          onBalanceClick={() => setBudgetBreakdownOpen(true)}
         />
         <div className={s.sectionTitle}>
           <div>
@@ -332,6 +335,12 @@ export default function Dashboard() {
         loading={calendarDeleteLoading}
         onClose={() => setCalendarDeleteTarget(null)}
         onConfirm={confirmCalendarDelete}
+      />
+      <BudgetBreakdownModal
+        open={budgetBreakdownOpen}
+        balance={balanceData}
+        asOf={balanceAsOf}
+        onClose={() => setBudgetBreakdownOpen(false)}
       />
     </div>
   );
