@@ -56,8 +56,9 @@
     overflow: hidden;
   }
   .modal {
-    width: calc(100vw - 16px);
-    max-width: calc(100vw - 16px);
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
     border-radius: 20px 20px 0 0;
     padding: 20px 20px calc(32px + env(safe-area-inset-bottom));
     max-height: 92dvh;
