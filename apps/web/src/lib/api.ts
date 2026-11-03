@@ -24,6 +24,12 @@ export interface DashboardBalance {
     budgetAdjustments: number;
     checkCardSpent: number;
     unassignedSpent?: number;
+    spendingByPaymentMethod?: Array<{
+      paymentMethodId: string | null;
+      name: string;
+      type: "CASH" | "CHECK_CARD" | "BANK_ACCOUNT" | "UNASSIGNED";
+      amount: number;
+    }>;
     creditCardPaid: number;
     creditCardGross?: number;
     creditCardPrepaid?: number;

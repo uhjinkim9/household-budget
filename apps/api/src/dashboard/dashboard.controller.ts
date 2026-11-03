@@ -44,11 +44,7 @@ export class DashboardController {
       order: { createdAt: "ASC" },
     });
     const methods = await this.paymentMethods.findBy({ workspaceId });
-    const checkCardIds = new Set(
-      methods
-        .filter((method) => method.type === PaymentMethodType.CHECK_CARD)
-        .map((method) => method.id),
-    );
+    const methodById = new Map(methods.map((method) => [method.id, method]));
     const creditCards = methods.filter(
       (method) => method.type === PaymentMethodType.CREDIT_CARD,
     );
@@ -70,36 +66,47 @@ export class DashboardController {
           row.date >= from,
       )
       .reduce((sum, row) => sum + Number(row.amount), 0);
-    const checkCardSpent = rows
-      .filter(
-        (row) =>
-          row.type !== TransactionType.BALANCE &&
-          Boolean(row.paymentMethodId) &&
-          checkCardIds.has(row.paymentMethodId!),
-      )
-      .reduce((sum, row) => {
-        if (row.recurrenceRule === "MONTHLY")
-          return (
-            sum +
-            Number(row.amount) *
-              this.monthlyOccurrenceCount(row.date, from, asOf)
-          );
-        return row.date >= from ? sum + Number(row.amount) : sum;
-      }, 0);
-    const unassignedSpent = rows
-      .filter(
-        (row) =>
-          row.type !== TransactionType.BALANCE && !row.paymentMethodId,
-      )
-      .reduce((sum, row) => {
-        if (row.recurrenceRule === "MONTHLY")
-          return (
-            sum +
-            Number(row.amount) *
-              this.monthlyOccurrenceCount(row.date, from, asOf)
-          );
-        return row.date >= from ? sum + Number(row.amount) : sum;
-      }, 0);
+    const immediateSpending = new Map<string | null, number>();
+    for (const row of rows) {
+      if (row.type === TransactionType.BALANCE) continue;
+      const method = row.paymentMethodId
+        ? methodById.get(row.paymentMethodId)
+        : undefined;
+      if (method?.type === PaymentMethodType.CREDIT_CARD) continue;
+      const amount =
+        row.recurrenceRule === "MONTHLY"
+          ? Number(row.amount) *
+            this.monthlyOccurrenceCount(row.date, from, asOf)
+          : row.date >= from
+            ? Number(row.amount)
+            : 0;
+      if (!amount) continue;
+      const key = method?.id ?? null;
+      immediateSpending.set(key, (immediateSpending.get(key) ?? 0) + amount);
+    }
+    const spendingByPaymentMethod = [...immediateSpending.entries()].map(
+      ([paymentMethodId, amount]) => {
+        const method = paymentMethodId
+          ? methodById.get(paymentMethodId)
+          : undefined;
+        return {
+          paymentMethodId,
+          name: method?.name ?? "결제수단 미지정",
+          type: method?.type ?? "UNASSIGNED",
+          amount,
+        };
+      },
+    );
+    const immediateSpent = spendingByPaymentMethod.reduce(
+      (sum, item) => sum + item.amount,
+      0,
+    );
+    const checkCardSpent = spendingByPaymentMethod
+      .filter((item) => item.type === PaymentMethodType.CHECK_CARD)
+      .reduce((sum, item) => sum + item.amount, 0);
+    const unassignedSpent = spendingByPaymentMethod
+      .filter((item) => item.type === "UNASSIGNED")
+      .reduce((sum, item) => sum + item.amount, 0);
     const creditCardPayment = await this.creditCardPayments(
       rows,
       creditCards,
@@ -110,8 +117,7 @@ export class DashboardController {
       balance:
         base +
         accumulated -
-        checkCardSpent -
-        unassignedSpent -
+        immediateSpent -
         creditCardPayment.automaticPaid,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
@@ -123,6 +129,7 @@ export class DashboardController {
           accumulated + creditCardPayment.prepaidTotal,
         checkCardSpent,
         unassignedSpent,
+        spendingByPaymentMethod,
         creditCardPaid: creditCardPayment.automaticPaid,
         creditCardGross: creditCardPayment.gross,
         creditCardPrepaid: creditCardPayment.prepaidTotal,

@@ -22,6 +22,13 @@ export function BudgetBreakdownModal({
   const { breakdown } = balance;
   const creditCardPrepaid = breakdown.creditCardPrepaid ?? 0;
   const unassignedSpent = breakdown.unassignedSpent ?? 0;
+  const immediateSpending = breakdown.spendingByPaymentMethod;
+  const methodTypeLabels = {
+    CASH: "현금 소비 · 소비일 기준 즉시 차감",
+    CHECK_CARD: "체크카드 소비 · 소비일 기준 즉시 차감",
+    BANK_ACCOUNT: "계좌이체 소비 · 소비일 기준 즉시 차감",
+    UNASSIGNED: "결제수단 없이 등록된 소비 · 소비일 기준 즉시 차감",
+  };
 
   return (
     <Modal open={open} title="현재 예산 계산 상세" onClose={onClose}>
@@ -45,16 +52,28 @@ export function BudgetBreakdownModal({
               </small>
             )}
           </div>
-          <div>
-            <span>체크카드 소비</span>
-            <strong className={s.negative}>- {money(breakdown.checkCardSpent)}</strong>
-            <small>소비일 기준 즉시 차감</small>
-          </div>
-          <div>
-            <span>결제수단 미지정 소비</span>
-            <strong className={s.negative}>- {money(unassignedSpent)}</strong>
-            <small>결제수단 없이 등록된 소비를 소비일 기준으로 차감</small>
-          </div>
+          {immediateSpending ? (
+            immediateSpending.map((item) => (
+              <div key={item.paymentMethodId ?? "unassigned"}>
+                <span>{item.name}</span>
+                <strong className={s.negative}>- {money(item.amount)}</strong>
+                <small>{methodTypeLabels[item.type]}</small>
+              </div>
+            ))
+          ) : (
+            <>
+              <div>
+                <span>체크카드 소비</span>
+                <strong className={s.negative}>- {money(breakdown.checkCardSpent)}</strong>
+                <small>소비일 기준 즉시 차감</small>
+              </div>
+              <div>
+                <span>결제수단 미지정 소비</span>
+                <strong className={s.negative}>- {money(unassignedSpent)}</strong>
+                <small>결제수단 없이 등록된 소비를 소비일 기준으로 차감</small>
+              </div>
+            </>
+          )}
           <div>
             <span>신용카드 결제일</span>
             <strong className={s.negative}>- {money(breakdown.creditCardPaid)}</strong>
@@ -73,7 +92,7 @@ export function BudgetBreakdownModal({
         </div>
 
         <p className={s.notice}>
-          현금과 계좌로 등록한 소비는 현재 계산에서 차감되지 않아요.
+          신용카드를 제외한 소비는 결제수단별로 소비일에 즉시 차감돼요.
         </p>
       </div>
     </Modal>
