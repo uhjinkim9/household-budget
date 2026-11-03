@@ -5,16 +5,12 @@ const money = (value: number) => `${value.toLocaleString("ko-KR")}원`;
 
 export function SummaryCards({
   balance,
-  projectedBalance,
-  projectedLabel,
   spent,
   fixed,
   variable,
   onBalanceClick,
 }: {
   balance: number;
-  projectedBalance?: number;
-  projectedLabel?: string;
   spent: number;
   fixed: number;
   variable: number;
@@ -27,9 +23,6 @@ export function SummaryCards({
       hint: "오늘까지의 체크카드 소비 반영",
       tone: "balance",
       type: "BALANCE",
-      projected:
-        projectedBalance === undefined ? undefined : money(projectedBalance),
-      projectedLabel,
     },
     {
       label: "이번 달 소비",
@@ -64,12 +57,6 @@ export function SummaryCards({
             <i className={s[item.tone]} />
           </div>
           <strong>{item.value}</strong>
-          {item.projected && (
-            <div className={s.projected}>
-              <span>{item.projectedLabel}</span>
-              <b>{item.projected}</b>
-            </div>
-          )}
           <small>{item.hint}</small>
           <em>{item.type === "BALANCE" ? "계산 상세 보기 →" : "목록 보기 →"}</em>
           </>

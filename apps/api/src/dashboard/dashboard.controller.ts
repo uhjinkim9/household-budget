@@ -107,32 +107,36 @@ export class DashboardController {
     const unassignedSpent = spendingByPaymentMethod
       .filter((item) => item.type === "UNASSIGNED")
       .reduce((sum, item) => sum + item.amount, 0);
-    const creditCardPayment = await this.creditCardPayments(
-      rows,
-      creditCards,
-      from,
-      asOf,
-    );
+    const creditCardIds = new Set(creditCards.map((card) => card.id));
+    const creditCardPrepaid = rows
+      .filter(
+        (row) =>
+          row.type === TransactionType.BALANCE &&
+          Boolean(row.paymentMethodId) &&
+          creditCardIds.has(row.paymentMethodId!) &&
+          Number(row.amount) < 0 &&
+          row.date >= from,
+      )
+      .reduce(
+        (sum, row) => sum + Math.abs(Number(row.amount)),
+        0,
+      );
     return {
-      balance:
-        base +
-        accumulated -
-        immediateSpent -
-        creditCardPayment.automaticPaid,
+      balance: base + accumulated - immediateSpent,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
       breakdown: {
         budgetInput:
-          base + accumulated + creditCardPayment.prepaidTotal,
+          base + accumulated + creditCardPrepaid,
         resetBase: base,
         budgetAdjustments:
-          accumulated + creditCardPayment.prepaidTotal,
+          accumulated + creditCardPrepaid,
         checkCardSpent,
         unassignedSpent,
         spendingByPaymentMethod,
-        creditCardPaid: creditCardPayment.automaticPaid,
-        creditCardGross: creditCardPayment.gross,
-        creditCardPrepaid: creditCardPayment.prepaidTotal,
+        creditCardPaid: 0,
+        creditCardGross: 0,
+        creditCardPrepaid,
         calculationFrom: resetAt,
       },
     };
@@ -367,98 +371,6 @@ export class DashboardController {
     const [, , masterDay] = masterDate.split("-").map(Number);
     const [year, month] = monthDate.split("-").map(Number);
     return this.dateWithClampedDay(year, month, masterDay);
-  }
-
-  private async creditCardPayments(
-    rows: Transaction[],
-    cards: PaymentMethod[],
-    from: string,
-    asOf: string,
-  ) {
-    const [fromYear, fromMonth] = from.split("-").map(Number);
-    const [toYear, toMonth] = asOf.split("-").map(Number);
-    const fromIndex = fromYear * 12 + fromMonth - 1;
-    const toIndex = toYear * 12 + toMonth - 1;
-    let gross = 0;
-    let prepaidApplied = 0;
-    let prepaidTotal = 0;
-    let automaticPaid = 0;
-
-    for (const card of cards) {
-      if (!card.billingDay) continue;
-      const cardRows = rows.filter(
-        (row) =>
-          row.type !== TransactionType.BALANCE &&
-          row.paymentMethodId === card.id,
-      );
-      if (!cardRows.length) continue;
-      const prepayments = rows
-        .filter(
-          (row) =>
-            row.type === TransactionType.BALANCE &&
-            row.paymentMethodId === card.id &&
-            Number(row.amount) < 0 &&
-            row.date >= from,
-        )
-        .sort((left, right) => left.date.localeCompare(right.date));
-      prepaidTotal += prepayments.reduce(
-        (sum, row) => sum + Math.abs(Number(row.amount)),
-        0,
-      );
-      let prepaymentIndex = 0;
-      let prepaymentCredit = 0;
-      const [firstYear, firstMonth] = cardRows
-        .map((row) => row.date)
-        .sort()[0]
-        .split("-")
-        .map(Number);
-      const firstPaymentIndex = firstYear * 12 + firstMonth;
-
-      for (
-        let paymentIndex = Math.max(fromIndex - 1, firstPaymentIndex);
-        paymentIndex <= toIndex;
-        paymentIndex++
-      ) {
-        const paymentYear = Math.floor(paymentIndex / 12);
-        const paymentMonth = (paymentIndex % 12) + 1;
-        const scheduledPaymentDate = this.dateWithClampedDay(
-          paymentYear,
-          paymentMonth,
-          card.billingDay,
-        );
-        const paymentDate =
-          await this.businessDays.nextBusinessDay(scheduledPaymentDate);
-        if (paymentDate < from || paymentDate > asOf) continue;
-
-        const usageIndex = paymentIndex - 1;
-        const usageYear = Math.floor(usageIndex / 12);
-        const usageMonth = (usageIndex % 12) + 1;
-        const usageFrom = this.dateWithClampedDay(usageYear, usageMonth, 1);
-        const usageTo = this.dateWithClampedDay(usageYear, usageMonth, 31);
-        while (
-          prepaymentIndex < prepayments.length &&
-          prepayments[prepaymentIndex].date <= paymentDate
-        ) {
-          prepaymentCredit += Math.abs(
-            Number(prepayments[prepaymentIndex].amount),
-          );
-          prepaymentIndex += 1;
-        }
-        const scheduledAmount = cardRows.reduce((sum, row) => {
-          const included =
-            row.recurrenceRule === "MONTHLY"
-              ? this.hasMonthlyOccurrence(row.date, usageFrom, usageTo)
-              : row.date >= usageFrom && row.date <= usageTo;
-          return included ? sum + Number(row.amount) : sum;
-        }, 0);
-        const prepaidAmount = Math.min(scheduledAmount, prepaymentCredit);
-        gross += scheduledAmount;
-        prepaidApplied += prepaidAmount;
-        automaticPaid += scheduledAmount - prepaidAmount;
-        prepaymentCredit -= prepaidAmount;
-      }
-    }
-    return { gross, prepaidApplied, prepaidTotal, automaticPaid };
   }
 
   private async nextCreditCardPaymentDate(

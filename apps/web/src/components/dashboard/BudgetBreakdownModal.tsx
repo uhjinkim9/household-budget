@@ -75,11 +75,6 @@ export function BudgetBreakdownModal({
             </>
           )}
           <div>
-            <span>신용카드 결제일</span>
-            <strong className={s.negative}>- {money(breakdown.creditCardPaid)}</strong>
-            <small>결제일이 도래해 자동 차감된 금액</small>
-          </div>
-          <div>
             <span>신용카드 선결제</span>
             <strong className={s.negative}>- {money(creditCardPrepaid)}</strong>
             <small>사용자가 미리 결제해 예산에서 차감한 금액</small>
@@ -92,7 +87,8 @@ export function BudgetBreakdownModal({
         </div>
 
         <p className={s.notice}>
-          신용카드를 제외한 소비는 결제수단별로 소비일에 즉시 차감돼요.
+          신용카드 결제일은 참고 정보이며 자동으로 예산을 차감하지 않아요. 실제
+          카드 대금은 예산 감소로 직접 등록해주세요.
         </p>
       </div>
     </Modal>

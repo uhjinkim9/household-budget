@@ -16,7 +16,6 @@ import { api } from "@/lib/api";
 import { workspaceSettingsApi } from "@/lib/workspace-settings-api";
 import type { DailyNote, Transaction, TransactionType } from "@/lib/types";
 import {
-  formatDate,
   monthBounds,
   toLocalDateString,
   yearBounds,
@@ -64,11 +63,6 @@ export default function Dashboard() {
   const { data: balanceData } = useQuery({
     queryKey: ["dashboard-balance", workspaceId, "current", balanceAsOf],
     queryFn: () => api.dashboardBalance(workspaceId, balanceAsOf),
-    enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
-  });
-  const { data: nextCardPaymentBalance } = useQuery({
-    queryKey: ["next-card-payment-balance", workspaceId, balanceAsOf],
-    queryFn: () => api.nextCardPaymentBalance(workspaceId, balanceAsOf),
     enabled: Boolean(workspaceId && workspace?.role !== "VIEWER"),
   });
   useEffect(() => {
@@ -227,12 +221,6 @@ export default function Dashboard() {
         </header>
         <SummaryCards
           balance={summary.balance}
-          projectedBalance={nextCardPaymentBalance?.balance}
-          projectedLabel={
-            nextCardPaymentBalance?.paymentDate
-              ? `${formatDate(nextCardPaymentBalance.paymentDate)} 결제 후 예상`
-              : undefined
-          }
           spent={summary.fixed + summary.variable}
           fixed={summary.fixed}
           variable={summary.variable}
