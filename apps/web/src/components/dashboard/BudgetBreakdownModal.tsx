@@ -21,6 +21,7 @@ export function BudgetBreakdownModal({
   if (!balance) return null;
   const { breakdown } = balance;
   const creditCardPrepaid = breakdown.creditCardPrepaid ?? 0;
+  const unassignedSpent = breakdown.unassignedSpent ?? 0;
 
   return (
     <Modal open={open} title="현재 예산 계산 상세" onClose={onClose}>
@@ -50,6 +51,11 @@ export function BudgetBreakdownModal({
             <small>소비일 기준 즉시 차감</small>
           </div>
           <div>
+            <span>결제수단 미지정 소비</span>
+            <strong className={s.negative}>- {money(unassignedSpent)}</strong>
+            <small>결제수단 없이 등록된 소비를 소비일 기준으로 차감</small>
+          </div>
+          <div>
             <span>신용카드 결제일</span>
             <strong className={s.negative}>- {money(breakdown.creditCardPaid)}</strong>
             <small>결제일이 도래해 자동 차감된 금액</small>
@@ -67,7 +73,7 @@ export function BudgetBreakdownModal({
         </div>
 
         <p className={s.notice}>
-          현금, 계좌 및 결제 수단을 선택하지 않은 소비는 현재 계산에서 차감되지 않아요.
+          현금과 계좌로 등록한 소비는 현재 계산에서 차감되지 않아요.
         </p>
       </div>
     </Modal>

@@ -23,6 +23,7 @@ export interface DashboardBalance {
     resetBase: number;
     budgetAdjustments: number;
     checkCardSpent: number;
+    unassignedSpent?: number;
     creditCardPaid: number;
     creditCardGross?: number;
     creditCardPrepaid?: number;

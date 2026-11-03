@@ -86,6 +86,20 @@ export class DashboardController {
           );
         return row.date >= from ? sum + Number(row.amount) : sum;
       }, 0);
+    const unassignedSpent = rows
+      .filter(
+        (row) =>
+          row.type !== TransactionType.BALANCE && !row.paymentMethodId,
+      )
+      .reduce((sum, row) => {
+        if (row.recurrenceRule === "MONTHLY")
+          return (
+            sum +
+            Number(row.amount) *
+              this.monthlyOccurrenceCount(row.date, from, asOf)
+          );
+        return row.date >= from ? sum + Number(row.amount) : sum;
+      }, 0);
     const creditCardPayment = await this.creditCardPayments(
       rows,
       creditCards,
@@ -94,7 +108,11 @@ export class DashboardController {
     );
     return {
       balance:
-        base + accumulated - checkCardSpent - creditCardPayment.automaticPaid,
+        base +
+        accumulated -
+        checkCardSpent -
+        unassignedSpent -
+        creditCardPayment.automaticPaid,
       mode: reset ? BalanceMode.MONTHLY_RESET : BalanceMode.CUMULATIVE,
       resetAt,
       breakdown: {
@@ -104,6 +122,7 @@ export class DashboardController {
         budgetAdjustments:
           accumulated + creditCardPayment.prepaidTotal,
         checkCardSpent,
+        unassignedSpent,
         creditCardPaid: creditCardPayment.automaticPaid,
         creditCardGross: creditCardPayment.gross,
         creditCardPrepaid: creditCardPayment.prepaidTotal,
