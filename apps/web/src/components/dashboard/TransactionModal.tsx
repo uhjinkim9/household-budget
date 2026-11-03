@@ -108,7 +108,7 @@ export function TransactionModal({
     const enteredAmount = Number(form.get("amount"));
     if (creditCardPrepayment && (!prepaymentCardId || enteredAmount === 0)) {
       setLoading(false);
-      setError("선결제할 신용카드와 금액을 확인해주세요.");
+      setError("결제액을 차감할 신용카드와 금액을 확인해주세요.");
       return;
     }
     try {
@@ -371,14 +371,13 @@ export function TransactionModal({
                 }}
                 disabled={readOnly}
               >
-                다음 신용카드 결제액 미리 결제
+                신용카드 결제액 차감
                 <small>
-                  등록 즉시 예산에서 차감하고, 선택한 카드의 결제일에는 같은 금액을
-                  다시 차감하지 않아요.
+                  실제로 출금된 카드 대금을 예산 감소 내역으로 직접 등록해요.
                 </small>
               </Checkbox>
               {creditCardPrepayment && (
-                <FormField label="선결제 신용카드">
+                <FormField label="결제 신용카드">
                   <Select
                     value={prepaymentCardId}
                     onChange={(event) => setPrepaymentCardId(event.target.value)}
@@ -449,19 +448,17 @@ export function TransactionModal({
                     삭제
                   </Button>
                 )}
-                {activeType !== "BALANCE" && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setCopying(true);
-                      setError("");
-                    }}
-                    disabled={loading}
-                  >
-                    복사
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setCopying(true);
+                    setError("");
+                  }}
+                  disabled={loading}
+                >
+                  복사
+                </Button>
               </div>
             )}
             <Button

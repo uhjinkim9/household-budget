@@ -75,9 +75,9 @@ export function BudgetBreakdownModal({
             </>
           )}
           <div>
-            <span>신용카드 선결제</span>
+            <span>신용카드 결제액 차감</span>
             <strong className={s.negative}>- {money(creditCardPrepaid)}</strong>
-            <small>사용자가 미리 결제해 예산에서 차감한 금액</small>
+            <small>사용자가 카드 대금으로 직접 등록해 예산에서 차감한 금액</small>
           </div>
         </div>
 

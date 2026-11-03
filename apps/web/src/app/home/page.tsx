@@ -84,12 +84,13 @@ export default function Dashboard() {
     >(null),
     [calendarDeleteLoading, setCalendarDeleteLoading] = useState(false);
   const [budgetBreakdownOpen, setBudgetBreakdownOpen] = useState(false);
-  const summary = useMemo(() => {
+  const monthlyItems = useMemo(() => {
     const occursThisMonth = (item: Transaction) =>
       (item.date >= currentMonth.from && item.date <= currentMonth.to) ||
       (item.recurrenceRule === "MONTHLY" && item.date <= currentMonth.to);
-    const monthlyItems = items.filter(occursThisMonth);
-
+    return items.filter(occursThisMonth);
+  }, [items, currentMonth.from, currentMonth.to]);
+  const summary = useMemo(() => {
     return {
       balance: balanceData?.balance ?? 0,
       fixed: monthlyItems
@@ -99,7 +100,7 @@ export default function Dashboard() {
         .filter((item) => item.type === "VARIABLE")
         .reduce((sum, item) => sum + Number(item.amount), 0),
     };
-  }, [items, balanceData, currentMonth.from, currentMonth.to]);
+  }, [monthlyItems, balanceData]);
   function start(t: TransactionType, d = date) {
     setNoteDate(null);
     setSelectedNote(null);
@@ -276,7 +277,7 @@ export default function Dashboard() {
           <aside>
             <CardPerformance
               cards={methods.filter((x) => x.type.includes("CARD"))}
-              items={items}
+              items={monthlyItems}
             />
           </aside>
         </div>
