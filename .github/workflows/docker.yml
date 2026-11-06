@@ -15,7 +15,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   GITOPS_REPOSITORY: uhjinkim9/helm-chart
-  GITOPS_BRANCH: aws-migration
+  GITOPS_BRANCH: main
   CHART_PATH: charts/household-budget
 
 jobs:
