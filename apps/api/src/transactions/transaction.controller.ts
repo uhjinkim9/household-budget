@@ -41,6 +41,10 @@ class TransactionRangeDto {
 
   @IsDateString({ strict: true })
   to!: string;
+
+  @IsOptional()
+  @IsString()
+  expandRecurring?: string;
 }
 
 class FoodItemDto {
@@ -128,6 +132,7 @@ export class TransactionController {
       query.from,
       query.to,
       member.role === WorkspaceRole.VIEWER,
+      query.expandRecurring === "true",
     );
   }
 

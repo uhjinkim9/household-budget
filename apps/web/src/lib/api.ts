@@ -85,9 +85,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
-  transactions: (workspaceId: string, from: string, to: string) =>
+  transactions: (
+    workspaceId: string,
+    from: string,
+    to: string,
+    expandRecurring = false,
+  ) =>
     request<Transaction[]>(
-      `/transactions?workspaceId=${workspaceId}&from=${from}&to=${to}`,
+      `/transactions?workspaceId=${workspaceId}&from=${from}&to=${to}${expandRecurring ? "&expandRecurring=true" : ""}`,
     ),
   createTransaction: (body: Omit<Transaction, "id">) =>
     request<Transaction>("/transactions", {

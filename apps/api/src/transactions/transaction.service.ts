@@ -17,7 +17,13 @@ export class TransactionService {
     private readonly notifications: NotificationPublisher,
   ) {}
 
-  async list(workspaceId: string, from: string, to: string, viewerOnly = false) {
+  async list(
+    workspaceId: string,
+    from: string,
+    to: string,
+    viewerOnly = false,
+    expandRecurring = false,
+  ) {
     const visibility = viewerOnly
       ? { type: Not(TransactionType.BALANCE) }
       : {};
@@ -38,7 +44,13 @@ export class TransactionService {
       relations: { foodItems: true },
       order: { date: "ASC", createdAt: "ASC" },
     });
-    return rows
+    const visibleRows = rows.filter(
+      (row) =>
+        row.recurrenceRule === "MONTHLY" ||
+        (row.date >= from && row.date <= to),
+    );
+    if (!expandRecurring) return visibleRows;
+    return visibleRows
       .flatMap((row) =>
         row.recurrenceRule === "MONTHLY"
           ? this.monthlyOccurrences(row, from, to)

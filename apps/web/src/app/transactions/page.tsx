@@ -94,7 +94,8 @@ export default function TransactionsPage() {
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["transactions", workspaceId, range.from, range.to],
-    queryFn: () => api.transactions(workspaceId, range.from, range.to),
+    queryFn: () =>
+      api.transactions(workspaceId, range.from, range.to, true),
     enabled: Boolean(workspaceId && validRange),
   });
 
