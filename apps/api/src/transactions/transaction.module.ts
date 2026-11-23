@@ -14,6 +14,7 @@ import { PaymentMethod } from "../entities/payment-method.entity";
     NotificationModule,
   ],
   providers: [TransactionService],
+  exports: [TransactionService],
   controllers: [TransactionController],
 })
 export class TransactionModule {}

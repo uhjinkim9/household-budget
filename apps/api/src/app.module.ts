@@ -13,6 +13,7 @@ import { HolidayModule } from "./holidays/holiday.module";
 import { HealthController } from "./health.controller";
 import { DailyNoteModule } from "./daily-notes/daily-note.module";
 import { NotificationModule } from "./notifications/notification.module";
+import { NotificationImportModule } from "./notification-imports/notification-import.module";
 // import { AddMercuryOidc1788382800000 } from "./database/migrations/1788382800000-AddMercuryOidc";
 
 @Module({
@@ -48,6 +49,7 @@ import { NotificationModule } from "./notifications/notification.module";
     HolidayModule,
     DailyNoteModule,
     NotificationModule,
+    NotificationImportModule,
   ],
 })
 export class AppModule {}
