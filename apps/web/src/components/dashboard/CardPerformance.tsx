@@ -12,7 +12,7 @@ export function CardPerformance({
     <section className={s.panel}>
       <header>
         <div>
-          <h2>카드 실적</h2>
+          <h2>카드별 사용 금액</h2>
           <p>이번 달 목표 달성 현황이에요</p>
         </div>
           <Link href="/payment-methods">결제 수단 관리</Link>

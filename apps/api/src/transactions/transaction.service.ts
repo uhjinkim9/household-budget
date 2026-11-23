@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, DataSource, Not, Repository } from "typeorm";
+import { Between, DataSource, LessThanOrEqual, Not, Repository } from "typeorm";
 import { Transaction, TransactionType } from "../entities/transaction.entity";
 import { TransactionFoodItem } from "../entities/transaction-food-item.entity";
 import { NotificationPublisher } from "../notifications/notification-publisher";
@@ -17,16 +17,40 @@ export class TransactionService {
     private readonly notifications: NotificationPublisher,
   ) {}
 
-  list(workspaceId: string, from: string, to: string, viewerOnly = false) {
-    return this.transactions.find({
-      where: {
-        workspaceId,
-        date: Between(from, to),
-        ...(viewerOnly ? { type: Not(TransactionType.BALANCE) } : {}),
-      },
+  async list(workspaceId: string, from: string, to: string, viewerOnly = false) {
+    const visibility = viewerOnly
+      ? { type: Not(TransactionType.BALANCE) }
+      : {};
+    const rows = await this.transactions.find({
+      where: [
+        {
+          workspaceId,
+          date: Between(from, to),
+          ...visibility,
+        },
+        {
+          workspaceId,
+          date: LessThanOrEqual(to),
+          recurrenceRule: "MONTHLY",
+          ...visibility,
+        },
+      ],
       relations: { foodItems: true },
       order: { date: "ASC", createdAt: "ASC" },
     });
+    return rows
+      .flatMap((row) =>
+        row.recurrenceRule === "MONTHLY"
+          ? this.monthlyOccurrences(row, from, to)
+          : row.date >= from && row.date <= to
+            ? [row]
+            : [],
+      )
+      .sort(
+        (left, right) =>
+          left.date.localeCompare(right.date) ||
+          left.createdAt.getTime() - right.createdAt.getTime(),
+      );
   }
 
   async create(data: TransactionWriteData) {
@@ -114,6 +138,33 @@ export class TransactionService {
     if (!card || card.type !== PaymentMethodType.CREDIT_CARD) {
       throw new BadRequestException("선결제할 신용카드를 확인해주세요.");
     }
+  }
+
+  private monthlyOccurrences(
+    transaction: Transaction,
+    from: string,
+    to: string,
+  ) {
+    const [startYear, startMonth, startDay] = transaction.date
+      .split("-")
+      .map(Number);
+    const [fromYear, fromMonth] = from.split("-").map(Number);
+    const [toYear, toMonth] = to.split("-").map(Number);
+    const startIndex = startYear * 12 + startMonth - 1;
+    const fromIndex = fromYear * 12 + fromMonth - 1;
+    const toIndex = toYear * 12 + toMonth - 1;
+    const occurrences: Transaction[] = [];
+    for (let index = Math.max(startIndex, fromIndex); index <= toIndex; index++) {
+      const year = Math.floor(index / 12);
+      const month = (index % 12) + 1;
+      const lastDay = new Date(year, month, 0).getDate();
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(
+        Math.min(startDay, lastDay),
+      ).padStart(2, "0")}`;
+      if (date < transaction.date || date < from || date > to) continue;
+      occurrences.push({ ...transaction, date });
+    }
+    return occurrences;
   }
 }
 
