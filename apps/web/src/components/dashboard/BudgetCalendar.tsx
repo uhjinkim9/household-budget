@@ -48,7 +48,16 @@ export function BudgetCalendar({
   onSelectNote: (note: DailyNote) => void;
 }) {
   const [mobileCreateDate, setMobileCreateDate] = useState<string | null>(null);
-  const transactionEvents: CalendarEvent[] = items.map((item) => ({
+  const uniqueItems = [
+    ...items
+      .reduce((byId, item) => {
+        const existing = byId.get(item.id);
+        if (!existing || item.date < existing.date) byId.set(item.id, item);
+        return byId;
+      }, new Map<string, Transaction>())
+      .values(),
+  ];
+  const transactionEvents: CalendarEvent[] = uniqueItems.map((item) => ({
     id: item.id,
     calendarId: item.type,
     title: `${item.title} · ${Number(item.amount).toLocaleString()}원`,
@@ -73,7 +82,7 @@ export function BudgetCalendar({
 
   function findTransaction(event: CalendarEvent) {
     const originalId = event.id.split("_")[0];
-    return items.find((item) => item.id === originalId);
+    return uniqueItems.find((item) => item.id === originalId);
   }
 
   function dropdownAction(payload: DropdownActionPayload) {

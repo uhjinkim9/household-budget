@@ -41,7 +41,15 @@ export default function Dashboard() {
     queryFn: () => api.transactions(workspaceId, range.from, range.to),
     enabled: Boolean(workspaceId),
   });
-  const items = Array.isArray(transactionData) ? transactionData : [];
+  const items = useMemo(() => {
+    const source = Array.isArray(transactionData) ? transactionData : [];
+    const byId = new Map<string, Transaction>();
+    for (const item of source) {
+      const existing = byId.get(item.id);
+      if (!existing || item.date < existing.date) byId.set(item.id, item);
+    }
+    return [...byId.values()];
+  }, [transactionData]);
   const { data: noteData } = useQuery({
     queryKey: ["daily-notes", workspaceId, range.from, range.to],
     queryFn: () => api.dailyNotes(workspaceId, range.from, range.to),

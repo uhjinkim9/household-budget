@@ -44,11 +44,20 @@ export class TransactionService {
       relations: { foodItems: true },
       order: { date: "ASC", createdAt: "ASC" },
     });
-    const visibleRows = rows.filter(
-      (row) =>
-        row.recurrenceRule === "MONTHLY" ||
-        (row.date >= from && row.date <= to),
-    );
+    const visibleRows = [
+      ...rows
+        .filter(
+          (row) =>
+            row.recurrenceRule === "MONTHLY" ||
+            (row.date >= from && row.date <= to),
+        )
+        .reduce((byId, row) => {
+          const existing = byId.get(row.id);
+          if (!existing || row.date < existing.date) byId.set(row.id, row);
+          return byId;
+        }, new Map<string, Transaction>())
+        .values(),
+    ];
     if (!expandRecurring) return visibleRows;
     return visibleRows
       .flatMap((row) =>
